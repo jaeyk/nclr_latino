@@ -1,0 +1,58 @@
+---
+title: "EDA"
+---
+
+# Import pkgs 
+
+```{r}
+# Import pkgs
+pacman::p_load(
+  pdftools,
+  tidyverse,
+  purrr,
+  tm,
+  here
+)
+```
+
+# Import files 
+
+```{r}
+# File name list
+filename <- list.files(here("raw_data"))
+```
+
+# Turn texts into a dataframe 
+
+```{r}
+# Excluding codebook
+filename <- filename[!str_detect(filename, "codebook")]
+
+# Mapping 
+text_list <- map(here("raw_data", filename), pdf_text)
+
+# List into a data frame
+df <- text_list %>%
+  map_df(enframe, .id = "ListElement")
+
+# Reformat filename
+date_list <- gsub(".pdf", "", filename)
+
+# for loop
+
+for (i in seq(date_list)) {
+  df$ListElement[df$ListElement == paste(i)] <- date_list[i]
+}
+
+# Rename and mutate
+df <- df %>%
+  mutate(date = str_replace_all(date, "_", "-")) %>%
+  mutate(date = lubridate::ymd(date)) %>%
+  rename(
+    "date" = "ListElement",
+    "page_number" = "name"
+  ) 
+
+# Save the df
+saveRDS(df, here("processed_data/nclr.Rdata"))
+```
