@@ -1,5 +1,6 @@
 ---
 title: "EDA"
+output: pdf_document
 ---
 
 # Import pkgs 
@@ -10,21 +11,34 @@ pacman::p_load(
   pdftools,
   tidyverse,
   purrr,
+  furrr,
   tm,
-  here
+  here,
+  tidytext, # text analysis 
+  SnowballC, # stemming 
+  textclean, # text preprocessing 
+  ggthemes,
+  text2vec, # word embedding 
+  widyr,
+  patchwork, # arranging ggplots
+  glue
 )
+
+theme_set(theme_clean())
+
+source(here("functions", "utils.r"))
 ```
 
 # Import files 
 
-```{r}
+```{r eval = FALSE}
 # File name list
 filename <- list.files(here("raw_data"))
 ```
 
 # Turn texts into a dataframe 
 
-```{r}
+```{r eval = FALSE}
 # Excluding codebook
 filename <- filename[!str_detect(filename, "codebook")]
 
@@ -37,7 +51,9 @@ df <- text_list %>%
 
 # Reformat filename
 date_list <- gsub(".pdf", "", filename)
+```
 
+```{r eval = FALSE}
 # for loop
 
 for (i in seq(date_list)) {
@@ -46,13 +62,200 @@ for (i in seq(date_list)) {
 
 # Rename and mutate
 df <- df %>%
-  mutate(date = str_replace_all(date, "_", "-")) %>%
-  mutate(date = lubridate::ymd(date)) %>%
   rename(
     "date" = "ListElement",
     "page_number" = "name"
-  ) 
+  ) %>% 
+  mutate(date = str_replace_all(date, "_", "-")) %>%
+  mutate(date = lubridate::ymd(date))
+
+# Ignore page numbers and concatenate texts by date 
+df <- df %>% 
+  group_by(date) %>%
+  summarise(value = paste(value, collapse = ","))
 
 # Save the df
-saveRDS(df, here("processed_data/nclr.Rdata"))
+saveRDS(df, file = here("processed_data/nclr.Rdata"))
+```
+
+```{r}
+# Load the df 
+df <- readRDS(here("processed_data/nclr.Rdata"))
+```
+
+# Preprocessing 
+
+```{r eval = FALSE}
+# Remove non word characters 
+df$value <- textclean::strip(df$value)
+
+# Remove cover pages 
+df <- df %>%
+  filter(str_length(value) != 0) %>%
+  filter(!is.na(date))
+
+# Call stop words dictionary 
+data("stop_words")
+```
+
+# Count words 
+
+```{r}
+# Using stemming 
+tf_idf_stem <- get_word_count(df, stem = TRUE)
+
+# Not using stemming 
+tf_idf <- get_word_count(df, stem = FALSE)
+
+# Save the objects
+save(df, tf_idf, tf_idf_stem, file = here("processed_data/processed_text.Rdata"))
+```
+
+# Visualizing TF-IDF
+
+## Non-stemming 
+
+```{r}
+base_word_count <- tf_idf %>%
+  group_by(date, word) %>%
+  summarise(sum_n = sum(n, na.rm = TRUE),
+            sum_tf_idf = sum(tf_idf, na.rm = TRUE)) %>% 
+  filter(str_detect(word, "visibl")) %>%
+  filter(!str_detect(word, "divi"))
+
+base_word_count %>%
+  ungroup() %>%
+  count(word)
+```
+
+## Stemming 
+
+```{r}
+base_stem_count <- tf_idf_stem %>%
+  group_by(date, stem) %>%
+  summarise(sum_n = sum(n, na.rm = TRUE),
+            sum_tf_idf = sum(tf_idf, na.rm = TRUE)) %>%
+  filter(str_detect(stem, "visibl|invisibl")) 
+
+base_stem_count %>%
+  ungroup() %>%
+  count(stem)
+```
+
+## Plotting 
+
+
+```{r}
+count_word_plot <- base_word_count %>%
+  ggplot(aes(x = date, y = sum_n)) +
+    geom_point() +
+    labs(title = "The count of words related to 'visible' and 'invisible'",
+         subtitle = "No stemming",
+         x = "Issue date",
+         y = "Count",
+         caption = "Source: National Council of La Raza")
+
+frequency_word_plot <- base_word_count %>%
+  ggplot(aes(x = date, y = sum_tf_idf)) +
+    geom_point() +
+    labs(title = "The frequency of words related to 'visible' and 'invisible'",
+         subtitle = "No stemming",
+         x = "Issue date",
+         y = "TF-IDF (Normalized document length)",
+         caption = "Source: National Council of La Raza")
+
+count_stem_plot <- base_stem_count %>%
+  ggplot(aes(x = date, y = sum_n)) +
+    geom_point() +
+    labs(title = "The count of words related to 'visible' and 'invisible'",
+         subtitle = "Used stemming",
+         x = "Issue date",
+         y = "Count",
+         caption = "Source: National Council of La Raza")
+
+frequency_stem_plot <- base_stem_count %>%
+  ggplot(aes(x = date, y = sum_tf_idf)) +
+    geom_point() +
+    labs(title = "The frequency of words related to 'visible' and 'invisible'",
+         subtitle = "Used stemming",
+         x = "Issue date",
+         y = "TF-IDF (Normalized document length)",
+         caption = "Source: National Council of La Raza")
+
+(count_word_plot + frequency_word_plot) /
+(count_stem_plot + frequency_stem_plot)
+
+ggsave(here("outputs", "desc.png"), height = 11, width = 15)
+```
+
+# Word embedding 
+
+## Filtering 
+
+```{r}
+tokenized_df <- df %>%
+    # Tokenize 
+    unnest_tokens("word", value)
+
+glue("The original # of dimensions is: {nrow(tokenized_df)}")
+
+thres <- tokenized_df %>%
+  filter(word == "visible") %>%
+  count() %>%
+  pull(n)
+
+tidy_df <- tokenized_df %>%
+    # Add count 
+    add_count(word) %>%
+    # Filter
+    filter(n >= (thres)) %>%
+    # Drop the variable 
+    select(-n)
+
+glue("The filtering reduced the original # of dimensions by {round(1 - nrow(tidy_df)/nrow(tokenized_df), 2) * 100}%")
+
+# This should be TRUE
+sum(str_detect(tidy_df$word, "visible")) == thres
+```
+
+## Nesting 
+
+```{r}
+nested_df <- tidy_df %>%
+  nest(words = c(word))
+
+head(nested_df)
+```
+
+## Calculating point-wise mutual information
+
+```{r}
+plan(multisession)  ## for parallel processing
+
+unnested_df <- nested_df %>%
+  mutate(words = future_map(words, slide_windows, 4L)) %>%
+  unnest(words) 
+
+tidy_pmi <- unnested_df %>%
+  unite(window_id, date, window_id) %>%
+  pairwise_pmi(word, window_id)
+
+save(unnested_df, tidy_pmi, file = here("processed_data", "tidy_pmi.Rdata"))
+```
+
+## Reducing dimensions 
+
+```{r}
+# 100 dimensions using Singular Value Composition
+tidy_word_vectors <- tidy_pmi %>%
+  widely_svd(
+    item1, item2, pmi,
+    nv = 100, maxit = 1000
+  )
+```
+
+## Inspecting words
+
+```{r}
+unique(tidy_word_vectors$item1[str_detect(tidy_word_vectors$item1, "vis")])
 ```
