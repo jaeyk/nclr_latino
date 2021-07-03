@@ -1,6 +1,8 @@
 ---
 title: "EDA"
-output: pdf_document
+output:
+  html_document:
+    df_print: paged
 ---
 
 # Import pkgs 
@@ -21,7 +23,8 @@ pacman::p_load(
   text2vec, # word embedding 
   widyr,
   patchwork, # arranging ggplots
-  glue
+  glue,
+  reactable
 )
 
 theme_set(theme_clean())
@@ -144,7 +147,6 @@ base_stem_count %>%
 
 ## Plotting 
 
-
 ```{r}
 count_word_plot <- base_word_count %>%
   ggplot(aes(x = date, y = sum_n)) +
@@ -155,6 +157,10 @@ count_word_plot <- base_word_count %>%
          y = "Count",
          caption = "Source: National Council of La Raza")
 
+count_word_plot
+```
+
+```{r}
 frequency_word_plot <- base_word_count %>%
   ggplot(aes(x = date, y = sum_tf_idf)) +
     geom_point() +
@@ -164,6 +170,10 @@ frequency_word_plot <- base_word_count %>%
          y = "TF-IDF (Normalized document length)",
          caption = "Source: National Council of La Raza")
 
+frequency_word_plot
+```
+
+```{r}
 count_stem_plot <- base_stem_count %>%
   ggplot(aes(x = date, y = sum_n)) +
     geom_point() +
@@ -173,6 +183,10 @@ count_stem_plot <- base_stem_count %>%
          y = "Count",
          caption = "Source: National Council of La Raza")
 
+count_stem_plot
+```
+
+```{r}
 frequency_stem_plot <- base_stem_count %>%
   ggplot(aes(x = date, y = sum_tf_idf)) +
     geom_point() +
@@ -182,6 +196,10 @@ frequency_stem_plot <- base_stem_count %>%
          y = "TF-IDF (Normalized document length)",
          caption = "Source: National Council of La Raza")
 
+frequency_stem_plot
+```
+
+```{r eval = FALSE}
 (count_word_plot + frequency_word_plot) /
 (count_stem_plot + frequency_stem_plot)
 
@@ -192,7 +210,7 @@ ggsave(here("outputs", "desc.png"), height = 11, width = 15)
 
 ## Filtering 
 
-```{r}
+```{r eval = FALSE}
 tokenized_df <- df %>%
     # Tokenize 
     unnest_tokens("word", value)
@@ -220,7 +238,7 @@ sum(str_detect(tidy_df$word, "visible")) == thres
 
 ## Nesting 
 
-```{r}
+```{r eval = FALSE}
 nested_df <- tidy_df %>%
   nest(words = c(word))
 
@@ -229,7 +247,7 @@ head(nested_df)
 
 ## Calculating point-wise mutual information
 
-```{r}
+```{r eval = FALSE}
 plan(multisession)  ## for parallel processing
 
 unnested_df <- nested_df %>%
@@ -246,6 +264,10 @@ save(unnested_df, tidy_pmi, file = here("processed_data", "tidy_pmi.Rdata"))
 ## Reducing dimensions 
 
 ```{r}
+load(here("processed_data", "tidy_pmi.Rdata"))
+```
+
+```{r}
 # 100 dimensions using Singular Value Composition
 tidy_word_vectors <- tidy_pmi %>%
   widely_svd(
@@ -254,8 +276,15 @@ tidy_word_vectors <- tidy_pmi %>%
   )
 ```
 
-## Inspecting words
+## Inspecting related words
 
 ```{r}
-unique(tidy_word_vectors$item1[str_detect(tidy_word_vectors$item1, "vis")])
+tidy_word_vectors %>%
+  nearest_neighbors("visible") %>%
+  filter(item1 != "visible") %>%
+  top_n(30, abs(value)) %>%
+  mutate(value = round(value,2)) %>%
+  rename(word = item1,
+         similarity = value) %>%
+  reactable()
 ```
