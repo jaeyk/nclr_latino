@@ -287,4 +287,13 @@ tidy_word_vectors %>%
   rename(word = item1,
          similarity = value) %>%
   reactable()
+
+tidy_word_vectors %>%
+  nearest_neighbors("visible") %>%
+  filter(item1 != "visible") %>%
+  top_n(30, abs(value)) %>%
+  mutate(value = round(value,2)) %>%
+  rename(word = item1,
+         similarity = value) %>%
+  kableExtra::kable()
 ```
