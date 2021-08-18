@@ -24,7 +24,8 @@ pacman::p_load(
   widyr,
   patchwork, # arranging ggplots
   glue,
-  reactable
+  reactable,
+  zoo
 )
 
 theme_set(theme_clean())
@@ -36,7 +37,7 @@ source(here("functions", "utils.r"))
 
 ```{r eval = FALSE}
 # File name list
-filename <- list.files(here("raw_data"))
+filename <- list.files(here("raw_data", "nclr"))
 ```
 
 # Turn texts into a dataframe 
@@ -46,7 +47,7 @@ filename <- list.files(here("raw_data"))
 filename <- filename[!str_detect(filename, "codebook")]
 
 # Mapping 
-text_list <- map(here("raw_data", filename), pdf_text)
+text_list <- map(here("raw_data", "nclr", filename), pdf_text)
 
 # List into a data frame
 df <- text_list %>%
@@ -54,9 +55,7 @@ df <- text_list %>%
 
 # Reformat filename
 date_list <- gsub(".pdf", "", filename)
-```
 
-```{r eval = FALSE}
 # for loop
 
 for (i in seq(date_list)) {
@@ -84,18 +83,29 @@ saveRDS(df, file = here("processed_data/nclr.Rdata"))
 ```{r}
 # Load the df 
 df <- readRDS(here("processed_data/nclr.Rdata"))
+
+new_df <- separate(df, date, into = c("year", "month", "month_int"), sep = "-")
+new_date_nclr <- glue("{new_df$year}-{new_df$month}")
+
+df$date <- zoo::as.yearmon(new_date_nclr)
+
+asian <- read_csv(here("raw_data", "AsianMag_articles.csv")) # Gidra (1969-1974) and Bridge (1970-1982)
+
+new_date_asian <- glue("{asian$year}-{asian$month}") %>%
+  readr::parse_number() # only numeric 
+
+asian$date <- zoo::as.yearmon(new_date_asian)
+
+asian <- asian %>%
+  rename(value = text) %>%
+  select(value, date)
 ```
 
 # Preprocessing 
 
 ```{r eval = FALSE}
-# Remove non word characters 
-df$value <- textclean::strip(df$value)
-
-# Remove cover pages 
-df <- df %>%
-  filter(str_length(value) != 0) %>%
-  filter(!is.na(date))
+df <- clean_text(df)
+asian <- clean_text(asian)
 
 # Call stop words dictionary 
 data("stop_words")
@@ -103,197 +113,52 @@ data("stop_words")
 
 # Count words 
 
-```{r}
+```{r eval = FALSE}
 # Using stemming 
-tf_idf_stem <- get_word_count(df, stem = TRUE)
-
-# Not using stemming 
-tf_idf <- get_word_count(df, stem = FALSE)
+tf_idf_stem_nclr <- get_word_count(df, stem = TRUE)
+tf_idf_stem_asian <- get_word_count(asian, stem = TRUE)
 
 # Save the objects
-save(df, tf_idf, tf_idf_stem, file = here("processed_data/processed_text.Rdata"))
-```
-
-# Visualizing TF-IDF
-
-## Non-stemming 
-
-```{r}
-base_word_count <- tf_idf %>%
-  group_by(date, word) %>%
-  summarise(sum_n = sum(n, na.rm = TRUE),
-            sum_tf_idf = sum(tf_idf, na.rm = TRUE)) %>% 
-  filter(str_detect(word, "visibl")) %>%
-  filter(!str_detect(word, "divi"))
-
-base_word_count %>%
-  ungroup() %>%
-  count(word)
-```
-
-## Stemming 
-
-```{r}
-base_stem_count <- tf_idf_stem %>%
-  group_by(date, stem) %>%
-  summarise(sum_n = sum(n, na.rm = TRUE),
-            sum_tf_idf = sum(tf_idf, na.rm = TRUE)) %>%
-  filter(str_detect(stem, "visibl|invisibl")) 
-
-base_stem_count %>%
-  ungroup() %>%
-  count(stem)
-```
-
-## Plotting 
-
-```{r}
-count_word_plot <- base_word_count %>%
-  ggplot(aes(x = date, y = sum_n)) +
-    geom_point() +
-    labs(title = "The count of words related to 'visible' and 'invisible'",
-         subtitle = "No stemming",
-         x = "Issue date",
-         y = "Count",
-         caption = "Source: National Council of La Raza")
-
-count_word_plot
+save(df, tf_idf_stem_nclr,
+     asian, tf_idf_stem_asian, 
+     file = here("processed_data/processed_text.Rdata"))
 ```
 
 ```{r}
-frequency_word_plot <- base_word_count %>%
-  ggplot(aes(x = date, y = sum_tf_idf)) +
-    geom_point() +
-    labs(title = "The frequency of words related to 'visible' and 'invisible'",
-         subtitle = "No stemming",
-         x = "Issue date",
-         y = "TF-IDF (Normalized document length)",
-         caption = "Source: National Council of La Raza")
+load(file = here("processed_data/processed_text.Rdata"))
 
-frequency_word_plot
+tf_idf_stem <- bind_rows(
+  mutate(tf_idf_stem_nclr, group = "Hispanic"), 
+  mutate(tf_idf_stem_asian, group = "Asian"))
+
+#tf_idf_stem$stem[str_detect(tf_idf_stem$stem, "recog")]
 ```
+
+# Plotting 
 
 ```{r}
-count_stem_plot <- base_stem_count %>%
-  ggplot(aes(x = date, y = sum_n)) +
-    geom_point() +
-    labs(title = "The count of words related to 'visible' and 'invisible'",
-         subtitle = "Used stemming",
-         x = "Issue date",
-         y = "Count",
-         caption = "Source: National Council of La Raza")
+ggplot2::theme_set(ggthemes::theme_clean())
 
-count_stem_plot
+plot_track_keyword(tf_idf_stem, "visibl") /
+plot_track_keyword(tf_idf_stem, "recog")
+
+ggsave(here("outputs", "desc.png"), width = 10, height = 10)
 ```
+
+# Prepping for word embedding 
 
 ```{r}
-frequency_stem_plot <- base_stem_count %>%
-  ggplot(aes(x = date, y = sum_tf_idf)) +
-    geom_point() +
-    labs(title = "The frequency of words related to 'visible' and 'invisible'",
-         subtitle = "Used stemming",
-         x = "Issue date",
-         y = "TF-IDF (Normalized document length)",
-         caption = "Source: National Council of La Raza")
+asian <- asian %>% filter(!is.na(date))
 
-frequency_stem_plot
+tidy_pmi_nclr <- df2pmi(df)
+tidy_pmi_asian <- df2pmi(asian)
+
+save(tidy_pmi_nclr, 
+     tidy_pmi_asian, 
+     file = here("processed_data", "tidy_pmi.Rdata"))
 ```
-
+ 
 ```{r eval = FALSE}
-(count_word_plot + frequency_word_plot) /
-(count_stem_plot + frequency_stem_plot)
-
-ggsave(here("outputs", "desc.png"), height = 11, width = 15)
-```
-
-# Word embedding 
-
-## Filtering 
-
-```{r eval = FALSE}
-tokenized_df <- df %>%
-    # Tokenize 
-    unnest_tokens("word", value)
-
-glue("The original # of dimensions is: {nrow(tokenized_df)}")
-
-thres <- tokenized_df %>%
-  filter(word == "visible") %>%
-  count() %>%
-  pull(n)
-
-tidy_df <- tokenized_df %>%
-    # Add count 
-    add_count(word) %>%
-    # Filter
-    filter(n >= (thres)) %>%
-    # Drop the variable 
-    select(-n)
-
-glue("The filtering reduced the original # of dimensions by {round(1 - nrow(tidy_df)/nrow(tokenized_df), 2) * 100}%")
-
-# This should be TRUE
-sum(str_detect(tidy_df$word, "visible")) == thres
-```
-
-## Nesting 
-
-```{r eval = FALSE}
-nested_df <- tidy_df %>%
-  nest(words = c(word))
-
-head(nested_df)
-```
-
-## Calculating point-wise mutual information
-
-```{r eval = FALSE}
-plan(multisession)  ## for parallel processing
-
-unnested_df <- nested_df %>%
-  mutate(words = future_map(words, slide_windows, 4L)) %>%
-  unnest(words) 
-
-tidy_pmi <- unnested_df %>%
-  unite(window_id, date, window_id) %>%
-  pairwise_pmi(word, window_id)
-
-save(unnested_df, tidy_pmi, file = here("processed_data", "tidy_pmi.Rdata"))
-```
-
-## Reducing dimensions 
-
-```{r}
-load(here("processed_data", "tidy_pmi.Rdata"))
-```
-
-```{r}
-# 100 dimensions using Singular Value Composition
-tidy_word_vectors <- tidy_pmi %>%
-  widely_svd(
-    item1, item2, pmi,
-    nv = 100, maxit = 1000
-  )
-```
-
-## Inspecting related words
-
-```{r}
-tidy_word_vectors %>%
-  nearest_neighbors("visible") %>%
-  filter(item1 != "visible") %>%
-  top_n(30, abs(value)) %>%
-  mutate(value = round(value,2)) %>%
-  rename(word = item1,
-         similarity = value) %>%
-  reactable()
-
-tidy_word_vectors %>%
-  nearest_neighbors("visible") %>%
-  filter(item1 != "visible") %>%
-  top_n(30, abs(value)) %>%
-  mutate(value = round(value,2)) %>%
-  rename(word = item1,
-         similarity = value) %>%
-  kableExtra::kable()
+knitr::purl(input = here("code", "01_EDA.Rmd"),
+            output = here("code", "01_EDA.r"))
 ```

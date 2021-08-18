@@ -1,0 +1,105 @@
+---
+title: "EDA"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Import pkgs 
+
+```{r}
+# Import pkgs
+pacman::p_load(
+  pdftools,
+  tidyverse,
+  purrr,
+  furrr,
+  tm,
+  here,
+  tidytext, # text analysis 
+  SnowballC, # stemming 
+  textclean, # text preprocessing 
+  ggthemes,
+  text2vec, # word embedding 
+  widyr,
+  patchwork, # arranging ggplots
+  glue,
+  reactable,
+  # network visualization
+  igraph, 
+  ggraph 
+)
+
+theme_set(theme_clean())
+
+source(here("functions", "utils.r"))
+```
+
+# Import files 
+
+```{r}
+load(here("processed_data", "tidy_pmi.Rdata"))
+```
+
+# Word embedding 
+
+## Reducing dimensions 
+
+```{r}
+# 100 dimensions using Singular Value Composition
+tidy_word_vectors_nclr <- tidy_pmi_nclr %>%
+  widely_svd(
+    item1, item2, pmi,
+    nv = 100, maxit = 1000
+  )
+
+tidy_word_vectors_asian <- tidy_pmi_asian %>%
+    widely_svd(
+    item1, item2, pmi,
+    nv = 100, maxit = 1000
+  )
+
+save(tidy_word_vectors_nclr, tidy_word_vectors_asian, file = here("processed_data", "tidy_word_vectors.RData"))
+```
+
+## Inspecting related words using word embedding
+
+- Hispanic 
+
+```{r}
+dina_key_words <- c("minority", "collective", "race", "racism", "discrimination", "solidarity", "community", "recognition", "movement", "identity", "streotype", "assimilation", "negative", "white", "black", "negro", "hispanic", "puerto", "brown")
+
+jae_key_words <- c("invisible", "unity", "census", "federal", "government", "policy", "absence")
+
+keywords <- c(dina_key_words, jae_key_words)
+```
+
+```{r}
+embed_out_nclr <- purrr::map_dfr(keywords, 
+  possibly(~key2sim(tidy_word_vectors_nclr, .),
+           # This sorts out the keyword not in the word embedding
+    otherwise = 
+      data.frame(word = NA, 
+                 similarity = NA, 
+                 keyword = NA)))
+
+embed_out_asian <- purrr::map_dfr( keywords, 
+  possibly(~key2sim(tidy_word_vectors_asian, .),
+           # This sorts out the keyword not in the word embedding
+    otherwise = 
+      data.frame(word = NA, 
+                 similarity = NA, 
+                 keyword = NA)))
+```
+
+## Plotting the results 
+
+```{r}
+plot_embed(embed_out_nclr)
+
+ggsave(here("outputs", "embed_plot_nclr.png"), height = 9, width = 12)
+
+plot_embed(embed_out_asian)
+
+ggsave(here("outputs", "embed_plot_asian.png"), height = 9, width = 12)
+```
