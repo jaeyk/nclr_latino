@@ -24,10 +24,8 @@ pacman::p_load(
   widyr,
   patchwork, # arranging ggplots
   glue,
-  reactable,
-  # network visualization
-  igraph, 
-  ggraph 
+  # deep learning 
+  text2vec
 )
 
 theme_set(theme_clean())
@@ -44,25 +42,28 @@ load(file = here("processed_data/processed_text.Rdata"))
 rm(list = ls()[grep("tf_idf", ls())])
 ```
 
-# Word embedding 
+The following code is adapted from: https://cbail.github.io/textasdata/word2vec/rmarkdown/word2vec.html
 
-## Reducing dimensions 
+# Preprocessing data 
 
 ```{r}
-# 100 dimensions using Singular Value Composition
-tidy_word_vectors_nclr <- tidy_pmi_nclr %>%
-  widely_svd(
-    item1, item2, pmi,
-    nv = 100, maxit = 1000
-  )
+data("stop_words")
 
-tidy_word_vectors_asian <- tidy_pmi_asian %>%
-    widely_svd(
-    item1, item2, pmi,
-    nv = 100, maxit = 1000
-  )
+# Remove noise 
+df_clean <- df %>%
+  mutate(value = value %>%
+           # Remove stopwords 
+           tm::removeWords(words = stop_words$word) %>%
+           # Remove excessive white space
+           str_squish()) 
+```
 
-save(tidy_word_vectors_nclr, tidy_word_vectors_asian, file = here("processed_data", "tidy_word_vectors.RData"))
+The following code was adapted from http://text2vec.org/glove.html
+
+# Building and training model 
+
+```{r}
+word_vectors_nclr <- df2vec(df_clean)
 ```
 
 ## Inspecting related words using word embedding
@@ -78,16 +79,10 @@ keywords <- c(dina_key_words, jae_key_words)
 ```
 
 ```{r}
+out <- vec2sim(word_vectors, "identity", 20)
+  
 embed_out_nclr <- purrr::map_dfr(keywords, 
-  possibly(~key2sim(tidy_word_vectors_nclr, .),
-           # This sorts out the keyword not in the word embedding
-    otherwise = 
-      data.frame(word = NA, 
-                 similarity = NA, 
-                 keyword = NA)))
-
-embed_out_asian <- purrr::map_dfr( keywords, 
-  possibly(~key2sim(tidy_word_vectors_asian, .),
+  possibly(~vec2sim(word_vectors_nclr, ., 20),
            # This sorts out the keyword not in the word embedding
     otherwise = 
       data.frame(word = NA, 
@@ -100,9 +95,5 @@ embed_out_asian <- purrr::map_dfr( keywords,
 ```{r}
 plot_embed(embed_out_nclr)
 
-ggsave(here("outputs", "embed_plot_nclr.png"), height = 9, width = 12)
-
-plot_embed(embed_out_asian)
-
-ggsave(here("outputs", "embed_plot_asian.png"), height = 9, width = 12)
+ggsave(here("outputs", "embed_plot_nclr_glove.png"), height = 9, width = 12)
 ```

@@ -1,3 +1,76 @@
+df2vec <- function(df) {
+  
+  # Create iterator over tokens
+  tokens <- space_tokenizer(df$value)
+  
+  # Create vocabulary. Terms will be unigrams (simple words).
+  it = itoken(tokens, progressbar = FALSE)
+  
+  vocab <- create_vocabulary(it)
+  
+  # Filter words
+  vocab <- prune_vocabulary(vocab, term_count_min = 5L)
+  
+  # Use our filtered vocabulary
+  vectorizer <- vocab_vectorizer(vocab)
+ 
+  # Use window of 10 for context words
+  tcm <- create_tcm(it, vectorizer, skip_grams_window = 10L)
+  
+  glove <- GlobalVectors$new(rank = 50, x_max = 10)
+  
+  wv_main <- glove$fit_transform(tcm, n_iter = 1000, convergence_tol = 0.001, n_threads = 8)
+  
+  wv_context <- glove$components
+  
+  word_vectors <- wv_main + t(wv_context)
+  
+  return(word_vectors)
+}
+
+vec2sim <- function(vec, keyword, n) {
+  
+  pattern <- word_vectors[keyword, , drop = FALSE]
+  
+  cos_sim <- sim2(x = word_vectors, y = pattern, 
+                  method = "cosine", norm = "l2")
+  
+  out <- head(sort(cos_sim[,1], decreasing = TRUE), n+1)[-1]
+  
+  out <- data.frame(out) %>%
+    add_rownames("word") %>%
+    rename(similarity = out) 
+  
+  out$keyword <- keyword
+  
+  out <- out %>% select(word, similarity, keyword)
+  
+  return(out)
+}
+
+# Adapted from here: https://cbail.github.io/textasdata/word2vec/rmarkdown/word2vec.html
+skipgrams_generator <- function(text, tokenizer, window_size, negative_samples) {
+  
+  tokenizer <- text_tokenizer(num_words =  10000) # maximum number of word to keep (based on frequency)
+  
+  gen <- texts_to_sequences_generator(tokenizer, sample(text))
+  
+  function() {
+    skip <- generator_next(gen) %>%
+      skipgrams(
+        vocabulary_size = tokenizer$num_words, 
+        window_size = window_size, 
+        negative_samples = 1
+      )
+    
+    x <- transpose(skip$couples) %>% map(. %>% unlist %>% as.matrix(ncol = 1))
+    y <- skip$labels %>% as.matrix(ncol = 1)
+    
+    list(x, y)
+  }
+  
+}
+
 # preprocessing 
 
 get_word_count <- function(data, stem = TRUE) {
