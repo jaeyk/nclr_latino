@@ -1,3 +1,30 @@
+keyword2plot <- function(keywords, n, custom_title = NULL){
+
+  out <- purrr::map_dfr(keywords, 
+               possibly(~vec2sim(word_vectors_nclr, ., n),
+                        # This sorts out the keyword not in the word embedding
+                        otherwise = 
+                          data.frame(word = NA, 
+                                     similarity = NA, 
+                                     keyword = NA)))
+
+  if (is.null(custom_title)) {
+  
+    out <- plot_embed(out) 
+    
+    return(out)
+    
+    }
+  
+  else {
+      
+      out <- plot_embed(out) + labs(title = custom_title)
+      
+      return(out)
+      
+    } 
+}
+
 df2vec <- function(df) {
   
   # Create iterator over tokens
@@ -28,14 +55,14 @@ df2vec <- function(df) {
   return(word_vectors)
 }
 
-vec2sim <- function(vec, keyword, n) {
+vec2sim <- function(word_vectors, keyword, n = 10) {
   
   pattern <- word_vectors[keyword, , drop = FALSE]
   
   cos_sim <- sim2(x = word_vectors, y = pattern, 
                   method = "cosine", norm = "l2")
   
-  out <- head(sort(cos_sim[,1], decreasing = TRUE), n+1)[-1]
+  out <- head(sort(cos_sim[,1], decreasing = TRUE), n + 1)[-1]
   
   out <- data.frame(out) %>%
     add_rownames("word") %>%
@@ -186,7 +213,9 @@ plot_embed <- function(embed) {
     mutate(word = factor(word, levels = rev(unique(word)))) %>%
     ggplot(aes(similarity, word, fill = keyword)) +
     geom_col(show.legend = FALSE) +
-    facet_wrap(~keyword, ncol = 5, scales = "free")
+    facet_wrap(~keyword, ncol = 5, scales = "free") +
+    labs(x = "Cosine similiarity",
+         y = "")
   
   return(out)
 }

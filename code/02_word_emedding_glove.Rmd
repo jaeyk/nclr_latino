@@ -71,29 +71,27 @@ word_vectors_nclr <- df2vec(df_clean)
 - Hispanic 
 
 ```{r}
-dina_key_words <- c("minority", "collective", "race", "racism", "discrimination", "solidarity", "community", "recognition", "movement", "identity", "streotype", "assimilation", "negative", "white", "black", "negro", "hispanic", "puerto", "brown")
+visibility <- c("visibility", "representation", "absence", "statistics", "data")
 
-jae_key_words <- c("invisible", "unity", "census", "federal", "government", "policy", "absence")
+identity <- c("pride", "race", "tradition", "identity", "culture")
 
-keywords <- c(dina_key_words, jae_key_words)
+marginality <- c("discrimination", "poverty", "inequality", "bias", "minority")
+
+government <- c("federal", "government", "civil", "fund", "census")
+
+claims <- c("solidarity", "community", "power", "strength", "influence") 
+
+group <- c("white", "black", "negro", "hispanic", "asian")
 ```
 
 ```{r}
-out <- vec2sim(word_vectors, "identity", 20)
-  
-embed_out_nclr <- purrr::map_dfr(keywords, 
-  possibly(~vec2sim(word_vectors_nclr, ., 20),
-           # This sorts out the keyword not in the word embedding
-    otherwise = 
-      data.frame(word = NA, 
-                 similarity = NA, 
-                 keyword = NA)))
-```
+(keyword2plot(visibility, 20, "Visibility")) /
+(keyword2plot(marginality, 20, "Marginality")) / (keyword2plot(identity, 20, "Identity")) 
 
-## Plotting the results 
+ggsave(here("outputs", "embed_plot_nclr_glove_visible.png"), height = 9, width = 12)
 
-```{r}
-plot_embed(embed_out_nclr)
+(keyword2plot(group, 20, "Group")) /
+(keyword2plot(claims, 20, "Claim"))
 
-ggsave(here("outputs", "embed_plot_nclr_glove.png"), height = 9, width = 12)
+ggsave(here("outputs", "embed_plot_nclr_glove_group.png"), height = 9, width = 12)
 ```
