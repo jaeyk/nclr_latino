@@ -56,6 +56,13 @@ df_clean <- df %>%
            tm::removeWords(words = stop_words$word) %>%
            # Remove excessive white space
            str_squish()) 
+
+asian_clean <- asian_text %>%
+  mutate(value = value %>%
+           # Remove stopwords 
+           tm::removeWords(words = stop_words$word) %>%
+           # Remove excessive white space
+           str_squish()) 
 ```
 
 The following code was adapted from http://text2vec.org/glove.html
@@ -64,18 +71,19 @@ The following code was adapted from http://text2vec.org/glove.html
 
 ```{r}
 word_vectors_nclr <- df2vec(df_clean)
+word_vectors_asian <- df2vec(asian_clean)
+
+save(word_vectors_nclr, word_vectors_asian, file = here("processed_data", "word_vectors.RData"))
 ```
 
 ## Inspecting related words using word embedding
-
-- Hispanic 
 
 ```{r}
 visibility <- c("visibility", "representation", "absence", "statistics", "data")
 
 identity <- c("pride", "race", "tradition", "identity", "culture")
 
-marginality <- c("discrimination", "poverty", "inequality", "bias", "minority")
+marginality <- c("discrimination", "poverty", "inequality", "immigrant", "minority")
 
 government <- c("federal", "government", "civil", "fund", "census")
 
@@ -85,13 +93,25 @@ group <- c("white", "black", "negro", "hispanic", "asian")
 ```
 
 ```{r}
-(keyword2plot(visibility, 20, "Visibility")) /
-(keyword2plot(marginality, 20, "Marginality")) / (keyword2plot(identity, 20, "Identity")) 
+(keyword2plot(word_vectors_nclr, visibility, 20, "Visibility")) /
+(keyword2plot(word_vectors_nclr, marginality, 20, "Marginality")) / (keyword2plot(word_vectors_nclr, identity, 20, "Identity")) 
 
 ggsave(here("outputs", "embed_plot_nclr_glove_visible.png"), height = 9, width = 12)
 
-(keyword2plot(group, 20, "Group")) /
-(keyword2plot(claims, 20, "Claim"))
+(keyword2plot(word_vectors_nclr, group, 20, "Group")) /
+(keyword2plot(word_vectors_nclr, claims, 20, "Claim"))
 
 ggsave(here("outputs", "embed_plot_nclr_glove_group.png"), height = 9, width = 12)
+```
+
+```{r}
+(keyword2plot(word_vectors_asian, visibility, 20, "Visibility")) /
+(keyword2plot(word_vectors_asian, marginality, 20, "Marginality")) / (keyword2plot(word_vectors_asian, identity, 20, "Identity")) 
+
+ggsave(here("outputs", "embed_plot_asian_glove_visible.png"), height = 9, width = 12)
+
+(keyword2plot(word_vectors_asian, group, 20, "Group")) /
+(keyword2plot(word_vectors_asian, claims, 20, "Claim"))
+
+ggsave(here("outputs", "embed_plot_asian_glove_group.png"), height = 9, width = 12)
 ```

@@ -1,7 +1,21 @@
-keyword2plot <- function(keywords, n, custom_title = NULL){
+parse_text <- function(file_path) {
+  
+  text <- readtext::readtext(file_path)
+  
+  meta <- text$doc_id %>% str_split("_")
+  
+  out <- data.frame(source = meta[[1]][1],
+                    year = meta[[1]][2],
+                    month = meta[[1]][3],
+                    value = text$text)
+  
+  return(out)
+}
+
+keyword2plot <- function(word_vector, keywords, n, custom_title = NULL){
 
   out <- purrr::map_dfr(keywords, 
-               possibly(~vec2sim(word_vectors_nclr, ., n),
+               possibly(~vec2sim(word_vector, ., n),
                         # This sorts out the keyword not in the word embedding
                         otherwise = 
                           data.frame(word = NA, 
@@ -222,7 +236,7 @@ plot_embed <- function(embed) {
 
 clean_text <- function(df) {
 
-  # Remove non word characters and cover pages 
+  # Remove non word characters
   df$value <- textclean::strip(df$value)
 
   # Remove cover pages 
@@ -263,15 +277,16 @@ plot_track_keyword <- function(tf_idf_stem, stem) {
                  values_to = "values")
 
   plot <- base_stem_count %>%
-    ggplot(aes(x = date, y = values, color = group)) +
+    ggplot(aes(x = date, y = values, col = group)) +
     geom_point() +
     labs(title = glue("The count of words related to {stem}"),
-         x = "Issue date",
-         y = "Count",
-         color = "Group",
+         col = "Source",
+         x = "",
+         y = "",
          caption = glue("Sources: National Council of La Raza, 1972-1981 (Hispanic),
                           Gidra, 1969-1974, Bridge, 1970-1982 (Asian)")) +
-    facet_wrap(~Measurement, scales = "free_y")
+    facet_wrap(~Measurement, scales = "free_y") +
+    scale_color_manual(values = wes_palette(n = 3, name = "GrandBudapest1"))
 
   return(plot)
 }
