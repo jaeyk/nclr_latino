@@ -255,40 +255,29 @@ rec_stem <- function(tf_idf_stem, stem) {
   return(keyword) 
 }
 
-plot_track_keyword <- function(tf_idf_stem, stem) {
-  
-  keyword <- tf_idf_stem$stem[str_detect(tf_idf_stem$stem, stem)] %>% unique()
-  
-  if (length(keyword) == 0) stop("the stem is not found in the corpus.") else {
-    
-    keyword <- paste(keyword, collapse = "|")
-    
-  }
+plot_track_keyword <- function(tf_idf, keyword) {
 
-  base_stem_count <- tf_idf_stem %>%
-    group_by(group, date, stem) %>%
+  base_count <- tf_idf %>%
+    group_by(group, date, word) %>%
     summarise(sum_n = sum(n, na.rm = TRUE),
               sum_tf_idf = sum(tf_idf, na.rm = TRUE)) %>%
-    filter(str_detect(stem, keyword)) %>%
+    filter(str_detect(word, keyword)) %>%
     rename(count = sum_n,
-           tf_idf = sum_tf_idf) %>%
-    pivot_longer(cols = c(count, tf_idf),
-                 names_to = "Measurement",
-                 values_to = "values")
-
-  plot <- base_stem_count %>%
-    ggplot(aes(x = date, y = values, col = group)) +
+           tf_idf = sum_tf_idf) 
+  
+  base_count %>%
+    ggplot(aes(x = date, y = tf_idf, col = group)) +
     geom_point() +
-    labs(title = glue("The count of words related to {stem}"),
+    geom_line(alpha = 0.5) +
+    labs(title = glue("The count of words related to {keyword}"),
          col = "Source",
          x = "",
-         y = "",
-         caption = glue("Sources: National Council of La Raza, 1972-1981 (Hispanic),
-                          Gidra, 1969-1974, Bridge, 1970-1982 (Asian)")) +
-    facet_wrap(~Measurement, scales = "free_y") +
-    scale_color_manual(values = wes_palette(n = 3, name = "GrandBudapest1"))
+         y = "") +
+    theme(legend.position = "bottom")
+  #       caption = glue("Sources: National Council of La Raza, 1972-1981 (Hispanic),
+   #                       Gidra, 1969-1974, Bridge, 1970-1982 (Asian)"))
+    
 
-  return(plot)
 }
 
 df2pmi <- function(df) {

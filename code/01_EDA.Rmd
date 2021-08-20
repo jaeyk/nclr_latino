@@ -25,6 +25,7 @@ pacman::p_load(
   text2vec, # word embedding 
   widyr,
   patchwork, # arranging ggplots
+  ggpubr, 
   glue,
   reactable,
   zoo
@@ -130,37 +131,48 @@ data("stop_words")
 # Count words 
 
 ```{r eval = FALSE}
-# Using stemming 
-tf_idf_stem_nclr <- get_word_count(df, stem = TRUE)
-tf_idf_stem_gidra <- get_word_count(asian_text %>%
-                                      filter(source == "Gidra"), stem = TRUE)
-tf_idf_stem_bridge <- get_word_count(asian_text %>% 
-                                       filter(source == "Bridge"), stem = TRUE)
+tf_idf_nclr <- get_word_count(df, stem = FALSE)
+tf_idf_gidra <- get_word_count(asian_text %>%
+                                 filter(source == "Gidra"), stem = FALSE)
+tf_idf_bridge <- get_word_count(asian_text %>%
+                                 filter(source != "Gidra"), stem = FALSE)
 
 # Save the objects
-save(df, tf_idf_stem_nclr,
-     asian_text, tf_idf_stem_gidra, tf_idf_stem_bridge, 
+save(df, tf_idf_nclr,
+     asian_text, tf_idf_gidra, tf_idf_bridge, 
      file = here("processed_data/processed_text.Rdata"))
 ```
 
 ```{r}
 #load(file = here("processed_data/processed_text.Rdata"))
 
-tf_idf_stem <- bind_rows(
-  mutate(tf_idf_stem_nclr, group = "NCLR"), 
-  mutate(tf_idf_stem_gidra, group = "Gidra"),
-  mutate(tf_idf_stem_bridge, group = "Bridge"))
+tf_idf <- bind_rows(
+  mutate(tf_idf_nclr, group = "NCLR"), 
+  mutate(tf_idf_gidra, group = "Gidra"),
+  mutate(tf_idf_bridge, group = "Bridge"))
 ```
 
 # Plotting 
 
 ```{r}
-ggplot2::theme_set(ggthemes::theme_clean())
+theme_set(theme_clean())
 
-plot_track_keyword(tf_idf_stem, "visibl") /
-plot_track_keyword(tf_idf_stem, "recogn")
+ggarrange(plot_track_keyword(tf_idf, "absence|representation|visibility"), plot_track_keyword(tf_idf, "census|data|statistics"), ncol = 1, nrow = 2)
 
-ggsave(here("outputs", "desc.png"), width = 10, height = 10)
+ggsave(here("outputs", "desc_visible.png"), width = 8)
+
+ggarrange(plot_track_keyword(tf_idf, "discrimination|prejudice|oppression|racism|poverty"), plot_track_keyword(tf_idf, "heritage|identity|tradition"), plot_track_keyword(tf_idf, "power|struggle|unity")
+, ncol = 1, nrow = 3)
+
+ggsave(here("outputs", "desc_claim_marginal.png"), height = 12, width = 10)
+
+ggarrange(plot_track_keyword(tf_idf, "asian|asians"), plot_track_keyword(tf_idf, "hispanic|mexican|puerto|chicano|spanish"), ncol = 1, nrow = 2)
+
+ggsave(here("outputs", "desc_asian_latino.png"), width = 12)
+
+ggarrange(plot_track_keyword(tf_idf, "white|whites"), plot_track_keyword(tf_idf, "black|blacks"), ncol = 1, nrow = 2)
+
+ggsave(here("outputs", "desc_white_black.png"))
 ```
  
 ```{r eval = FALSE}

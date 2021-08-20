@@ -63,17 +63,35 @@ asian_clean <- asian_text %>%
            tm::removeWords(words = stop_words$word) %>%
            # Remove excessive white space
            str_squish()) 
+
+save(df_clean, asian_clean, file = here("processed_data", "clean_texts.RData"))
 ```
 
 The following code was adapted from http://text2vec.org/glove.html
 
+# Split files 
+
+```{r}
+df1 <- df_clean %>% filter(date <= 1973)
+df2 <- df_clean %>% filter(date >= 1974 & date <= 1977)
+df3 <- df_clean %>% filter(date > 1978)
+
+asian1 <- asian_clean %>% filter(date <= 1973)
+asian2 <- asian_clean %>% filter(date >= 1974 & date <= 1977)
+asian3 <- asian_clean %>% filter(date > 1978)
+```
+
 # Building and training model 
 
 ```{r}
-word_vectors_nclr <- df2vec(df_clean)
-word_vectors_asian <- df2vec(asian_clean)
+word_vectors_nclr1 <- df2vec(df1)
+word_vectors_nclr2 <- df2vec(df2)
+word_vectors_nclr3 <- df2vec(df3)
+word_vectors_asian1 <- df2vec(asian1)
+word_vectors_asian2 <- df2vec(asian2)
+word_vectors_asian3 <- df2vec(asian3)
 
-save(word_vectors_nclr, word_vectors_asian, file = here("processed_data", "word_vectors.RData"))
+save(word_vectors_nclr1, word_vectors_nclr2, word_vectors_nclr3, word_vectors_asian1, word_vectors_asian2, word_vectors_asian3, file = here("processed_data", "word_vectors.RData"))
 ```
 
 ## Inspecting related words using word embedding
