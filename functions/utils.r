@@ -39,28 +39,82 @@ keyword2plot <- function(word_vector, keywords, n, custom_title = NULL){
     } 
 }
 
-df2vec <- function(df) {
+df2cm <-  function(corpus, count_min = 10, window_size = 6) {
+  
+  ############################### Create VOCAB ###############################
   
   # Create iterator over tokens
-  tokens <- space_tokenizer(df$value)
+  tokens <- space_tokenizer(corpus$value)
   
   # Create vocabulary. Terms will be unigrams (simple words).
-  it = itoken(tokens, progressbar = FALSE)
+  it <- itoken(tokens, progressbar = TRUE)
   
   vocab <- create_vocabulary(it)
   
   # Filter words
-  vocab <- prune_vocabulary(vocab, term_count_min = 5L)
+  vocab_pruned <- prune_vocabulary(vocab, term_count_min = count_min)
+  
+  # use quanteda's fcm to create an fcm matrix
+  fcm_cr <- tokens(corpus$value) %>% fcm(context = "window", count = "frequency", 
+                                             window = window_size, weights = rep(1, window_size), tri = FALSE)
+  
+  # subset fcm to the vocabulary included in the embeddings
+  fcm_cr <- fcm_select(fcm_cr, pattern = vocab_pruned$term, selection = "keep")
+  
+  return(fcm_cr)
+}
+
+df2ltm <-  function(corpus, fcm_cr, local_glove, count_min = 10, window_size = 6) {
+  
+  ############################### Create VOCAB ###############################
+  
+  # Create iterator over tokens
+  tokens <- space_tokenizer(corpus$value)
+  
+  # Create vocabulary. Terms will be unigrams (simple words).
+  it <- itoken(tokens, progressbar = TRUE)
+  
+  vocab <- create_vocabulary(it)
+  
+  # Filter words
+  vocab_pruned <- prune_vocabulary(vocab, term_count_min = count_min)
+  
+  local_transform <- compute_transform(context_fcm = fcm_cr, pre_trained = local_glove, 
+                                       vocab = vocab_pruned, weighting = 1000)
+}
+
+df2vec <- function(corpus, count_min = 10, window_size = 6, dims = 300) {
+  
+  ############################### Create VOCAB ###############################
+  
+  # Create iterator over tokens
+  tokens <- space_tokenizer(corpus$value)
+  
+  # Create vocabulary. Terms will be unigrams (simple words).
+  it <- itoken(tokens, progressbar = TRUE)
+  
+  vocab <- create_vocabulary(it)
+  
+  # Filter words
+  vocab_pruned <- prune_vocabulary(vocab, term_count_min = count_min)
+  
+  ############################### Create Term Co-occurence Matrix ###############################
   
   # Use our filtered vocabulary
-  vectorizer <- vocab_vectorizer(vocab)
+  vectorizer <- vocab_vectorizer(vocab_pruned)
  
   # Use window of 10 for context words
-  tcm <- create_tcm(it, vectorizer, skip_grams_window = 10L)
+  tcm <- create_tcm(it, vectorizer, skip_grams_window = window_size, skip_grams_window_context = "symmetric", weights = rep(1, window_size))
   
-  glove <- GlobalVectors$new(rank = 50, x_max = 10)
+  ############################### Set Model Parameters ###############################
   
-  wv_main <- glove$fit_transform(tcm, n_iter = 1000, convergence_tol = 0.001, n_threads = 8)
+  glove <- GlobalVectors$new(rank = dims, x_max = 100, learning_rate = 0.05)
+  
+  ############################### Fit Model ###############################
+  
+  wv_main <- glove$fit_transform(tcm, n_iter = 1000, convergence_tol = 0.001, n_threads = RcppParallel::defaultNumThreads())
+  
+  ############################### Get Output ###############################
   
   wv_context <- glove$components
   
@@ -84,7 +138,32 @@ vec2sim <- function(word_vectors, keyword, n = 10) {
   
   out$keyword <- keyword
   
-  out <- out %>% select(word, similarity, keyword)
+  out <- out %>% select(keyword, word, similarity) 
+  
+  out <- out %>%
+    rename(word1 = keyword, 
+           word2 = word, 
+           n = similarity)
+  
+  return(out)
+}
+
+vec2sim3 <- function(word_vectors, exp, group1, group2, n = 10) {
+  
+  pattern <- word_vectors[exp, , drop = FALSE] - word_vectors[group1, , drop = FALSE] + word_vectors[group2, , drop = FALSE]
+  
+  cos_sim <- sim2(x = word_vectors, y = pattern, 
+                  method = "cosine", norm = "l2")
+  
+  out <- head(sort(cos_sim[,1], decreasing = TRUE), n + 1)[-1]
+  
+  out <- data.frame(out) %>%
+    add_rownames("word") %>%
+    rename(similarity = out) 
+  
+  out$exp <- exp
+  out$group1 <- group1
+  out$group2 <- group2
   
   return(out)
 }

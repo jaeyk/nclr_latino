@@ -103,29 +103,25 @@ saveRDS(asian_text, file = here("processed_data/asian.Rdata"))
 
 ```{r}
 # Load the df 
-df <- readRDS(here("processed_data/nclr.Rdata"))
+df <- readRDS(here("processed_data/nclr.Rdata")) %>%
+  filter(date != "codebook")
 
 asian_text <- readRDS(here("processed_data/asian.Rdata"))
 
-new_date_df <- df %>% 
-  separate(date, into = c("year", "month"), "-") %>%
-  select(year, month)
-
-new_date_df <- glue("{new_date_df$year}-{new_date_df$month}")
 new_date_asian <- glue("{asian_text$year}-{asian_text$month}")
 
-df$date <- zoo::as.yearmon(new_date_df)
+df$date <- zoo::as.yearmon(df$date)
 asian_text$date <- zoo::as.yearmon(new_date_asian)
 ```
 
 # Preprocessing 
 
 ```{r eval = FALSE}
-df <- clean_text(df)
-asian_text <- clean_text(asian_text)
-
 # Call stop words dictionary 
 data("stop_words")
+
+df <- clean_text(df)
+asian_text <- clean_text(asian_text)
 ```
 
 # Count words 

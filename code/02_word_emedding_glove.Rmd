@@ -25,7 +25,10 @@ pacman::p_load(
   patchwork, # arranging ggplots
   glue,
   # deep learning 
-  text2vec
+  text2vec,
+  # network graph
+  igraph,
+  ggraph
 )
 
 theme_set(theme_clean())
@@ -40,31 +43,38 @@ load(file = here("processed_data/processed_text.Rdata"))
 
 # Remove unnecessary files 
 rm(list = ls()[grep("tf_idf", ls())])
+
+asian_text <- asian_text %>%
+  select(date, value, source)
+
+df$source <- "NCLR"
+
+corpus <- bind_rows(df, asian_text)
 ```
 
-The following code is adapted from: https://cbail.github.io/textasdata/word2vec/rmarkdown/word2vec.html
+# Word embedding
 
-# Preprocessing data 
+## Local embedding and matrix 
 
 ```{r}
-data("stop_words")
+local_glove <- df2vec(corpus)
+fcm_cr <- df2cm(corpus)
+local_transform <- df2ltm(corpus, fcm_cr, local_glove)
 
-# Remove noise 
-df_clean <- df %>%
-  mutate(value = value %>%
-           # Remove stopwords 
-           tm::removeWords(words = stop_words$word) %>%
-           # Remove excessive white space
-           str_squish()) 
+save(local_glove, fcm_cr, local_transform, 
+     file = here("processed_data/context_bg.Rdata"))
+```
 
-asian_clean <- asian_text %>%
-  mutate(value = value %>%
-           # Remove stopwords 
-           tm::removeWords(words = stop_words$word) %>%
-           # Remove excessive white space
-           str_squish()) 
+## Local transformation matrix 
 
-save(df_clean, asian_clean, file = here("processed_data", "clean_texts.RData"))
+```{r}
+# use quanteda's fcm to create an fcm matrix
+fcm_cr <- tokens(corpus$value) %>% 
+  fcm(context = "window", count = "frequency", 
+    window = 6, weights = rep(1, 6), tri = FALSE)
+
+# subset fcm to the vocabulary included in the embeddings
+fcm_cr <- fcm_select(fcm_cr, pattern = vocab_pruned$term, selection = "keep")
 ```
 
 The following code was adapted from http://text2vec.org/glove.html
@@ -97,39 +107,38 @@ save(word_vectors_nclr1, word_vectors_nclr2, word_vectors_nclr3, word_vectors_as
 ## Inspecting related words using word embedding
 
 ```{r}
+load(here("processed_data", "word_vectors.RData"))
+
 visibility <- c("visibility", "representation", "absence", "statistics", "data")
-
 identity <- c("pride", "race", "tradition", "identity", "culture")
-
 marginality <- c("discrimination", "poverty", "inequality", "immigrant", "minority")
-
 government <- c("federal", "government", "civil", "fund", "census")
-
 claims <- c("solidarity", "community", "power", "strength", "influence") 
-
 group <- c("white", "black", "negro", "hispanic", "asian")
+
+vec2sim(word_vectors_asian3, "black")
 ```
 
 ```{r}
-(keyword2plot(word_vectors_nclr, visibility, 20, "Visibility")) /
-(keyword2plot(word_vectors_nclr, marginality, 20, "Marginality")) / (keyword2plot(word_vectors_nclr, identity, 20, "Identity")) 
+(keyword2plot(word_vectors_nclr2, visibility, 20, "Visibility")) /
+(keyword2plot(word_vectors_nclr2, marginality, 20, "Marginality")) / (keyword2plot(word_vectors_nclr2, identity, 20, "Identity")) 
 
 ggsave(here("outputs", "embed_plot_nclr_glove_visible.png"), height = 9, width = 12)
 
-(keyword2plot(word_vectors_nclr, group, 20, "Group")) /
-(keyword2plot(word_vectors_nclr, claims, 20, "Claim"))
+(keyword2plot(word_vectors_nclr2, group, 20, "Group")) /
+(keyword2plot(word_vectors_nclr2, claims, 20, "Claim"))
 
 ggsave(here("outputs", "embed_plot_nclr_glove_group.png"), height = 9, width = 12)
 ```
 
 ```{r}
-(keyword2plot(word_vectors_asian, visibility, 20, "Visibility")) /
-(keyword2plot(word_vectors_asian, marginality, 20, "Marginality")) / (keyword2plot(word_vectors_asian, identity, 20, "Identity")) 
+(keyword2plot(word_vectors_asian2, visibility, 20, "Visibility")) /
+(keyword2plot(word_vectors_asian2, marginality, 20, "Marginality")) / (keyword2plot(word_vectors_asian2, identity, 20, "Identity")) 
 
 ggsave(here("outputs", "embed_plot_asian_glove_visible.png"), height = 9, width = 12)
 
-(keyword2plot(word_vectors_asian, group, 20, "Group")) /
-(keyword2plot(word_vectors_asian, claims, 20, "Claim"))
+(keyword2plot(word_vectors_asian2, group, 20, "Group")) /
+(keyword2plot(word_vectors_asian2, claims, 20, "Claim"))
 
 ggsave(here("outputs", "embed_plot_asian_glove_group.png"), height = 9, width = 12)
 ```
