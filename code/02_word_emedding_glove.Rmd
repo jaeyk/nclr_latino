@@ -15,6 +15,7 @@ pacman::p_load(
   purrr,
   furrr,
   tm,
+  quanteda, 
   here,
   tidytext, # text analysis 
   SnowballC, # stemming 
@@ -31,6 +32,8 @@ pacman::p_load(
   ggraph
 )
 
+devtools::install_github("prodriguezsosa/conText")
+library(conText)
 theme_set(theme_clean())
 
 source(here("functions", "utils.r"))
@@ -61,20 +64,49 @@ local_glove <- df2vec(corpus)
 fcm_cr <- df2cm(corpus)
 local_transform <- df2ltm(corpus, fcm_cr, local_glove)
 
-save(local_glove, fcm_cr, local_transform, 
+save(pre_local_glove, pre_fcm_cr, pre_local_transform, post_local_glove, post_fcm_cr, post_local_transform, 
      file = here("processed_data/context_bg.Rdata"))
 ```
 
-## Local transformation matrix 
+## Instance embeddings 
+ 
+### Keywords 
 
 ```{r}
-# use quanteda's fcm to create an fcm matrix
-fcm_cr <- tokens(corpus$value) %>% 
-  fcm(context = "window", count = "frequency", 
-    window = 6, weights = rep(1, 6), tri = FALSE)
+visibility <- c("visibility", "representation", "statistics", "data")
+identity <- c("pride", "race", "tradition", "identity", "culture")
+marginality <- c("discrimination", "poverty", "inequality", "immigrant", "minority")
+government <- c("federal", "government", "civil", "fund", "census")
+claims <- c("solidarity", "community", "power", "strength", "influence") 
+group <- c("white", "black", "negro", "hispanic", "asian")
+```
 
-# subset fcm to the vocabulary included in the embeddings
-fcm_cr <- fcm_select(fcm_cr, pattern = vocab_pruned$term, selection = "keep")
+### Get contexts and neighbor comparison 
+
+```{r}
+con2nplot(corpus, c("discrimination"), local_glove, local_transform) + labs(title = "Discrimination")
+
+ggsave(here("outputs", "disc_embed.png"), height = 10, width = 20)
+
+con2nplot(corpus, c("opportunity"), local_glove, local_transform) + labs(title = "Opportunity")
+
+ggsave(here("outputs", "opportunity_embed.png"), height = 10, width = 20)
+
+con2nplot(corpus, c("rights"), local_glove, local_transform) + labs(title = "Rights")
+
+ggsave(here("outputs", "rights_embed.png"), height = 10, width = 20)
+
+con2nplot(corpus, c("citizenship"), local_glove, local_transform) + labs(title = "citizenship")
+
+ggsave(here("outputs", "citizenship_embed.png"), height = 10, width = 20)
+
+con2nplot(corpus, c("minority"), local_glove, local_transform) + labs(title = "Minority")
+
+ggsave(here("outputs", "minority_embed.png"), height = 10, width = 20)
+
+con2nplot(corpus, c("representation"), local_glove, local_transform) + labs(title = "Representation")
+
+ggsave(here("outputs", "representation_embed.png"), height = 10, width = 20)
 ```
 
 The following code was adapted from http://text2vec.org/glove.html
@@ -108,13 +140,6 @@ save(word_vectors_nclr1, word_vectors_nclr2, word_vectors_nclr3, word_vectors_as
 
 ```{r}
 load(here("processed_data", "word_vectors.RData"))
-
-visibility <- c("visibility", "representation", "absence", "statistics", "data")
-identity <- c("pride", "race", "tradition", "identity", "culture")
-marginality <- c("discrimination", "poverty", "inequality", "immigrant", "minority")
-government <- c("federal", "government", "civil", "fund", "census")
-claims <- c("solidarity", "community", "power", "strength", "influence") 
-group <- c("white", "black", "negro", "hispanic", "asian")
 
 vec2sim(word_vectors_asian3, "black")
 ```

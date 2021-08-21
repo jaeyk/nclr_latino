@@ -1,3 +1,122 @@
+con2nplot <- function(corpus, keyword, local_glove, local_transform) { 
+  
+  # Latino context 
+  contextL <- get_context(x = corpus$value[corpus$source == "NCLR"], target = keyword)
+  
+  # Asian context 
+  contextA <- get_context(x = corpus$value[corpus$source != "NCLR"], target = keyword)
+  
+  # bind contexts 
+  contexts_corpus <- rbind(cbind(contextL, group = "Latino"), cbind(contextA, group = "Asian"))
+  
+  # embed each instance using a la carte
+  contexts_vectors <- embed_target(
+    context = contexts_corpus$context, 
+    pre_trained = local_glove, 
+    transform_matrix = local_transform, 
+    transform = TRUE, 
+    aggregate = FALSE, 
+    verbose = TRUE)
+
+  # get local vocab
+  local_vocab <- get_local_vocab(c(contextL$context, contextA$context), pre_trained = local_glove)
+
+  set.seed(1234)
+  contrast_target <- contrast_nns(
+    context1 = contextL$context, 
+    context2 = contextA$context, 
+    pre_trained = local_glove, 
+    transform_matrix = local_transform, 
+    transform = TRUE, 
+    bootstrap = TRUE, 
+    num_bootstraps = 20, 
+    permute = TRUE, 
+    num_permutations = 100, 
+    candidates = local_vocab, 
+    norm = "l2")
+
+  # define top N of interest
+  N <- 30
+
+  # first get each party's nearest neighbors (output by the contrast_nns function)
+  nnsL <- contrast_target$nns1
+  nnsA <- contrast_target$nns2
+
+  # subset to the union of top N nearest neighbors for each party
+  top_nns <- union(nnsL$Term[1:N], nnsA$Term[1:N])
+
+  # identify which of these are shared
+  shared_nns <- intersect(nnsL$Term[1:N], nnsA$Term[1:N])
+  
+  # subset nns_ratio (output by contrast_nns) to the union of the top nearest
+  # neighbors
+  nns_ratio <- contrast_target$nns_ratio %>% 
+    dplyr::filter(Term %in% top_nns) %>% 
+    mutate(group = case_when(
+      Term %in% nnsL$Term[1:N] & !(Term %in% nnsA$Term[1:N]) ~ "Latino", 
+      !(Term %in% nnsL$Term[1:N]) & Term %in% nnsA$Term[1:N] ~ "Asian", 
+      Term %in% shared_nns ~ "Shared"), 
+      significant = if_else(Empirical_Pvalue < 0.01, "yes", "no"))
+
+  # order Terms by Estimate
+  nns_ratio <- nns_ratio %>% 
+    mutate(absdev = abs(1 - Estimate)) %>% 
+    arrange(-absdev) %>% 
+    mutate(tokenID = 1:nrow(.)) %>% 
+    mutate(Term_Sig = if_else(significant == "yes", paste0(Term, "*"), Term))
+
+  # plot
+  nns_ratio %>%
+    ggplot() + 
+    geom_point(aes(x = Estimate, y = tokenID, color = group, shape = group), 
+               data = nns_ratio, size = 2) + 
+    geom_vline(xintercept = 1, colour = "black", linetype = "dashed", 
+               size = 0.5) + 
+    geom_text(
+      aes(x = Estimate, y = tokenID, label = Term_Sig), 
+        data = nns_ratio, 
+        hjust = if_else(nns_ratio$Estimate > 1, -0.2, 1.2), 
+        vjust = 0.25, 
+        size = 5) +
+    scale_color_manual(
+      values = c("black", "gray30", "gray60")) + 
+    xlim(0, 2) + 
+    ylim(0, 60) + 
+    ylab("") + 
+    xlab("cosine similarity ratio \n (Latino/Asian)") + 
+    theme(
+      panel.background = element_blank(), 
+      plot.title = element_text(size = 18, 
+                                hjust = 0.5, color = "blue"), 
+      axis.text.x = element_text(size = 16), 
+      axis.text.y = element_text(size = 16), 
+      axis.title.y = element_text(size = 16, margin = margin(t = 0, r = 15, b = 0, 
+                                                             l = 15)), 
+      axis.title.x = element_text(size = 16, margin = margin(t = 15, r = 0, b = 15, l = 0)), 
+      legend.text = element_text(size = 16), 
+      legend.title = element_blank(), 
+      legend.key = element_blank(), 
+      legend.position = "top", 
+      legend.spacing.x = unit(0.25, "cm"), 
+      plot.margin = unit(c(1, 1, 0, 0), "cm")) +
+    ggplot2::annotate(
+      geom = "text", 
+      x = c(0.5, 1.5), 
+      y = c(55, 55), 
+      label = c("more Asian", 
+                "more Latino")
+    )
+}
+
+key2convec <- function(corpus, keyword) {
+
+  contexts <- get_context(x = corpus$value, target = keyword, window = 6, valuetype = "fixed", case_insensitive = TRUE, hard_cut = FALSE, verbose = FALSE)
+
+  contexts_vectors <- embed_target(context = contexts$context, pre_trained = local_glove, transform_matrix = local_transform, transform = TRUE, aggregate = TRUE, verbose = TRUE)
+
+  return(contexts_vectors)
+}
+
 parse_text <- function(file_path) {
   
   text <- readtext::readtext(file_path)
@@ -39,7 +158,7 @@ keyword2plot <- function(word_vector, keywords, n, custom_title = NULL){
     } 
 }
 
-df2cm <-  function(corpus, count_min = 10, window_size = 6) {
+df2cm <- function(corpus, count_min = 5, window_size = 5) {
   
   ############################### Create VOCAB ###############################
   
@@ -55,7 +174,8 @@ df2cm <-  function(corpus, count_min = 10, window_size = 6) {
   vocab_pruned <- prune_vocabulary(vocab, term_count_min = count_min)
   
   # use quanteda's fcm to create an fcm matrix
-  fcm_cr <- tokens(corpus$value) %>% fcm(context = "window", count = "frequency", 
+  fcm_cr <- tokens(corpus$value) %>% 
+    quanteda::fcm(context = "window", count = "frequency", 
                                              window = window_size, weights = rep(1, window_size), tri = FALSE)
   
   # subset fcm to the vocabulary included in the embeddings
@@ -64,7 +184,7 @@ df2cm <-  function(corpus, count_min = 10, window_size = 6) {
   return(fcm_cr)
 }
 
-df2ltm <-  function(corpus, fcm_cr, local_glove, count_min = 10, window_size = 6) {
+df2ltm <-  function(corpus, fcm_cr, local_glove, count_min = 5, window_size = 5) {
   
   ############################### Create VOCAB ###############################
   
@@ -83,7 +203,7 @@ df2ltm <-  function(corpus, fcm_cr, local_glove, count_min = 10, window_size = 6
                                        vocab = vocab_pruned, weighting = 1000)
 }
 
-df2vec <- function(corpus, count_min = 10, window_size = 6, dims = 300) {
+df2vec <- function(corpus, count_min = 5, window_size = 5, dims = 50) {
   
   ############################### Create VOCAB ###############################
   
@@ -108,7 +228,7 @@ df2vec <- function(corpus, count_min = 10, window_size = 6, dims = 300) {
   
   ############################### Set Model Parameters ###############################
   
-  glove <- GlobalVectors$new(rank = dims, x_max = 100, learning_rate = 0.05)
+  glove <- GlobalVectors$new(rank = dims, x_max = 10)
   
   ############################### Fit Model ###############################
   
@@ -322,6 +442,13 @@ clean_text <- function(df) {
   df <- df %>%
     filter(str_length(value) != 0) %>%
     filter(!is.na(date))
+  
+  # Remove stopwords and excessive whitespace
+  df <- df %>% mutate(value = value %>%
+                       # Remove stopwords 
+                       tm::removeWords(words = stop_words$word) %>%
+                       # Remove excessive white space
+                       str_squish()) 
   
   return(df)
 
