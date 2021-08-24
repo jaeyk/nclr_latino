@@ -1,3 +1,55 @@
+
+get_context_vectors <- function(corpus, keyword, local_glove, local_transform) {
+  
+  # Latino context 
+  contextL <- get_context(x = corpus$value[corpus$source == "NCLR"], target = keyword)
+  
+  # Asian context 
+  contextA <- get_context(x = corpus$value[corpus$source != "NCLR"], target = keyword)
+  
+  # bind contexts 
+  contexts_corpus <- rbind(cbind(contextL, group = "Latino"), cbind(contextA, group = "Asian"))
+  
+  # embed each instance using a la carte
+  contexts_vectors <- embed_target(
+    context = contexts_corpus$context, 
+    pre_trained = local_glove, 
+    transform_matrix = local_transform, 
+    transform = TRUE, 
+    aggregate = FALSE, 
+    verbose = TRUE)
+
+}
+
+simseq2df <- function(simseq, i) {
+  
+  out <- mean(as.numeric(simseq[i,]), na.rm = TRUE)
+  
+  out <- data.frame("mean_sim" = out)
+  
+  return(out)
+}
+
+get_candidates <- function(corpus, keyword, local_glove, local_transform) {
+  
+  # get contexts 
+  contexts_corpus <- get_context(x = corpus$value, target = keyword)
+
+  # embed each instance using a la carte
+  contexts_vectors <- embed_target(
+    context = contexts_corpus$context, 
+    pre_trained = local_glove, 
+    transform_matrix = local_transform, 
+    transform = TRUE, 
+    aggregate = FALSE, 
+    verbose = TRUE)
+
+  # get local vocab
+  local_vocab <- get_local_vocab(c(contextL$context, contextA$context), pre_trained = local_glove)
+
+  return(local_vocab)
+}
+
 con2nplot <- function(corpus, keyword, local_glove, local_transform) { 
   
   # Latino context 
