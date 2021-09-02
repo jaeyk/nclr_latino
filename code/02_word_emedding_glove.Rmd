@@ -73,8 +73,9 @@ corpus$latino <- if_else(corpus$source == "NCLR", 1L, 0L)
 ```{r}
 local_glove <- df2vec(corpus)
 fcm_cr <- df2cm(corpus)
+local_transform <- df2ltm(corpus, fcm_cr, local_glove)
 
-save(local_glove, fcm_cr, local_transform, post_local_glove, 
+save(local_glove, local_transform, 
      file = here("processed_data/context_bg.Rdata"))
 ```
  
@@ -124,15 +125,55 @@ models_disc <- pblapply(
           hard_cut = FALSE, 
           verbose = FALSE)
   })
+
+models_minority <- pblapply(
+  unique(corpus$year), function(j){ conText(formula = minority ~ latino, 
+          data = corpus[corpus$year == j,], 
+          text_var = 'value', 
+          pre_trained = local_glove,
+          transform = TRUE, 
+          transform_matrix = local_transform, 
+          bootstrap = TRUE, 
+          num_bootstraps = 20, 
+          stratify_by = c('latino'), 
+          permute = TRUE, 
+          num_permutations = 100, 
+          window = 6, 
+          valuetype = 'fixed', 
+          case_insensitive = TRUE, 
+          hard_cut = FALSE, 
+          verbose = FALSE)
+  })
+
+models_federal <- pblapply(
+  unique(corpus$year), function(j){ conText(formula = federal ~ latino, 
+          data = corpus[corpus$year == j,], 
+          text_var = 'value', 
+          pre_trained = local_glove,
+          transform = TRUE, 
+          transform_matrix = local_transform, 
+          bootstrap = TRUE, 
+          num_bootstraps = 20, 
+          stratify_by = c('latino'), 
+          permute = TRUE, 
+          num_permutations = 100, 
+          window = 6, 
+          valuetype = 'fixed', 
+          case_insensitive = TRUE, 
+          hard_cut = FALSE, 
+          verbose = FALSE)
+  })
 ```
 
 ```{r}
 (models2plot_seq(models_black, "Black") + ylim(c(0, 2.5))) +
-(models2plot_seq(models_disc, "Discrimination") + ylim(c(0, 2.5)))
+(models2plot_seq(models_disc, "Discrimination") + ylim(c(0, 2.5))) 
 
 ggsave(here("outputs", "ts_embed_plot.png"))
+```
 
-corpus$pre <- if_else(corpus$year <= 1979, 1, 0) 
+```{r}
+corpus$pre <- if_else(corpus$year < 1976, 1, 0) 
 ```
 
 ### Regression 
@@ -171,13 +212,15 @@ mod_disc <- conText(formula = discrimination ~ latino + pre,
           case_insensitive = TRUE, 
           hard_cut = FALSE, 
           verbose = FALSE)
+```
 
+```{r}
 plot_tibble_black <- mod_black$normed_betas %>% 
-  mutate(Coefficient = c("Latino", "Pre-1979")) %>% 
+  mutate(Coefficient = c("Latino", "Pre-1976")) %>% 
   mutate(Coefficient = factor(Coefficient, levels = Coefficient))
 
 plot_tibble_disc <- mod_disc$normed_betas %>% 
-  mutate(Coefficient = c("Latino", "Pre-1979")) %>% 
+  mutate(Coefficient = c("Latino", "Pre-1976")) %>% 
   mutate(Coefficient = factor(Coefficient, levels = Coefficient))
 ```
 
@@ -190,7 +233,7 @@ reg_blk_plot <- plot_tibble_black %>%
     1.96 * Std.Error, ymax = Normed_Estimate + 1.96 * Std.Error), size = 0.75, width = 0.15, 
     position = position_dodge(0.9)) + 
   ylab("Norm of beta hats") + 
-  geom_text(aes(label = c("***", "**")), position = position_dodge(width = 0.9), hjust = 0.5, vjust = -1, size = 8) + 
+  geom_text(aes(label = c("***", "***")), position = position_dodge(width = 0.9), hjust = 0.5, vjust = -1, size = 8) + 
   theme(axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust = 1),
           axis.text.y = element_text(size = 10)) +
   ylim(c(0,1.4)) +
@@ -219,28 +262,82 @@ ggsave(here("outputs", "embed_reg_combined.png"))
 ### ALC embedding 
 
 ```{r}
+latino_pre_black_bt <- get_bt_terms(1, 1, "black", 100)
+asian_pre_black_bt <- get_bt_terms(0, 1, "black", 100)
 
+latino_post_black_bt <- get_bt_terms(1, 0, "black", 100)
+asian_post_black_bt <- get_bt_terms(0, 0, "black", 100)
+
+latino_pre_disc_bt <- get_bt_terms(1, 1, "discrimination", 100)
+asian_pre_disc_bt <- get_bt_terms(0, 1, "discrimination", 100)
+
+latino_post_disc_bt <- get_bt_terms(1, 0, "discrimination", 100)
+asian_post_disc_bt <- get_bt_terms(0, 0, "discrimination", 100)
+```
+
+```{r}
+terms2plot(latino_pre_black_bt, asian_pre_black_bt, "Black", "Pre-1976") + terms2plot(latino_post_black_bt, asian_post_black_bt, "Black", "Post-1976")
+
+ggsave(here("outputs", "bt_black.png"), width = 10)
+```
+
+```{r}
+terms2plot(latino_pre_disc_bt, asian_pre_disc_bt, "Discrimination", "Pre-1976") + terms2plot(latino_post_disc_bt, asian_post_disc_bt, "Discrimination", "Post-1976")
 ```
 
 ### Contrasting 
-```{r}
-nns_black <- (con2nplot(subset(corpus, year < 1979), "black", local_glove, local_transform) + labs(title = "Pre-1979", subtitle = "Keyword: Black") + theme_bw()) +
 
-(con2nplot(subset(corpus, year >= 1979), "black", local_glove, local_transform) + labs(title = "Post-1979", subtitle = "Keyword: Black") + theme_bw())
+```{r}
+nns_black <- (con2nplot(subset(corpus, year < 1976), c("black", "african_american"), local_glove, local_transform) + labs(title = "Pre-1976", subtitle = "Keyword: Black")) +
+
+(con2nplot(subset(corpus, year >= 1976), c("black", "african_american"), local_glove, local_transform) + labs(title = "Post-1976", subtitle = "Keyword: Black"))
 
 nns_black 
 ggsave(here("outputs", "black_contrast.png"),
-       width = 15, height = 10
+       width = 20, height = 15
        )
 ```
 
 ```{r}
-nns_disc <- (con2nplot(subset(corpus, year < 1979), "discrimination", local_glove, local_transform) + labs(title = "Pre-1979", subtitle = "Keyword: Discrimination") + theme_bw()) +
+nns_disc <- (con2nplot(subset(corpus, year < 1976), "discrimination", local_glove, local_transform) + labs(title = "Pre-1976", subtitle = "Keyword: Discrimination")) +
 
-(con2nplot(subset(corpus, year >= 1979), "discrimination", local_glove, local_transform) + labs(title = "Post-1979", subtitle = "Keyword: Discrimination") + theme_bw())
+(con2nplot(subset(corpus, year >= 1976), "discrimination", local_glove, local_transform) + labs(title = "Post-1976", subtitle = "Keyword: Discrimination"))
 
 nns_disc
 ggsave(here("outputs", "disc_contrast.png"),
-       width = 20, height = 10
+       width = 20, height = 15
+       )
+```
+
+```{r}
+nns_minority <- (con2nplot(subset(corpus, year < 1976), "mionrity", local_glove, local_transform) + labs(title = "Pre-1976", subtitle = "Keyword: Minority")) +
+
+(con2nplot(subset(corpus, year >= 1976), "minority", local_glove, local_transform) + labs(title = "Post-1976", subtitle = "Keyword: Minority"))
+
+nns_minority
+ggsave(here("outputs", "minority_contrast.png"),
+       width = 20, height = 15
+       )
+```
+
+```{r}
+nns_disc <- (con2nplot(subset(corpus, year < 1976), "discrimination", local_glove, local_transform) + labs(title = "Pre-1976", subtitle = "Keyword: Discrimination")) +
+
+(con2nplot(subset(corpus, year >= 1976), "discrimination", local_glove, local_transform) + labs(title = "Post-1976", subtitle = "Keyword: Discrimination"))
+
+nns_disc
+ggsave(here("outputs", "disc_contrast.png"),
+       width = 20, height = 15
+       )
+```
+
+```{r}
+nns_federal <- (con2nplot(subset(corpus, year < 1976), "federal", local_glove, local_transform) + labs(title = "Pre-1976", subtitle = "Keyword: Federal")) +
+
+(con2nplot(subset(corpus, year >= 1976), "federal", local_glove, local_transform) + labs(title = "Post-1976", subtitle = "Keyword: Federal"))
+
+nns_federal
+ggsave(here("outputs", "disc_federal.png"),
+       width = 20, height = 15
        )
 ```

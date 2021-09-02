@@ -169,6 +169,10 @@ ggsave(here("outputs", "desc_asian_latino.png"), width = 12)
 ggarrange(plot_track_keyword(tf_idf, "white|whites"), plot_track_keyword(tf_idf, "black|blacks"), ncol = 1, nrow = 2)
 
 ggsave(here("outputs", "desc_white_black.png"))
+
+plot_track_keyword(tf_idf, "black|blacks")
+
+ggsave(here("outputs", "desc_black.png"))
 ```
  
 ```{r eval = FALSE}
