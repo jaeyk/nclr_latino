@@ -262,27 +262,63 @@ ggsave(here("outputs", "embed_reg_combined.png"))
 ### ALC embedding 
 
 ```{r}
-latino_pre_black_bt <- get_bt_terms(1, 1, "black", 100)
-asian_pre_black_bt <- get_bt_terms(0, 1, "black", 100)
+latino_pre_black_bt <- get_bt_terms(1, 1, "black", 200)
+asian_pre_black_bt <- get_bt_terms(0, 1, "black", 200)
 
-latino_post_black_bt <- get_bt_terms(1, 0, "black", 100)
-asian_post_black_bt <- get_bt_terms(0, 0, "black", 100)
+latino_post_black_bt <- get_bt_terms(1, 0, "black", 200)
+asian_post_black_bt <- get_bt_terms(0, 0, "black", 200)
 
-latino_pre_disc_bt <- get_bt_terms(1, 1, "discrimination", 100)
-asian_pre_disc_bt <- get_bt_terms(0, 1, "discrimination", 100)
+latino_pre_disc_bt <- get_bt_terms(1, 1, "discrimination", 200)
+asian_pre_disc_bt <- get_bt_terms(0, 1, "discrimination", 200)
 
-latino_post_disc_bt <- get_bt_terms(1, 0, "discrimination", 100)
-asian_post_disc_bt <- get_bt_terms(0, 0, "discrimination", 100)
+latino_post_disc_bt <- get_bt_terms(1, 0, "discrimination", 200)
+asian_post_disc_bt <- get_bt_terms(0, 0, "discrimination", 200)
+
+latino_pre_compared_bt <- get_bt_terms(1, 1, "compared", 200)
+asian_pre_compared_bt <- get_bt_terms(0, 1, "compared", 200)
+
+latino_post_compared_bt <- get_bt_terms(1, 0, "compared", 200)
+asian_post_compared_bt <- get_bt_terms(0, 0, "compared", 200)
+```
+
+```{r}
+terms2plot(latino_pre_disc_bt, asian_pre_disc_bt, "Discrimination", "Pre-1976") + terms2plot(latino_post_disc_bt, asian_post_disc_bt, "Discrimination", "Post-1976")
+
+ggsave(here("outputs", "bt_disc.png"), width = 10, height = 10)
+
+terms2plot_sep(latino_pre_disc_bt, asian_pre_disc_bt, "Discrimination", "Pre-1976") + terms2plot_sep(latino_post_disc_bt, asian_post_disc_bt, "Discrimination", "Post-1976")
+
+ggsave(here("outputs", "bt_disc_sep.png"), width = 10, height = 10)
 ```
 
 ```{r}
 terms2plot(latino_pre_black_bt, asian_pre_black_bt, "Black", "Pre-1976") + terms2plot(latino_post_black_bt, asian_post_black_bt, "Black", "Post-1976")
 
-ggsave(here("outputs", "bt_black.png"), width = 10)
+ggsave(here("outputs", "bt_black.png"), width = 10, height = 10)
+
+terms2plot_sep(latino_pre_black_bt, asian_pre_black_bt, "Black", "Pre-1976") + terms2plot_sep(latino_post_black_bt, asian_post_black_bt, "Black", "Post-1976")
+
+ggsave(here("outputs", "bt_black_sep.png"), width = 10, height = 10)
 ```
 
 ```{r}
-terms2plot(latino_pre_disc_bt, asian_pre_disc_bt, "Discrimination", "Pre-1976") + terms2plot(latino_post_disc_bt, asian_post_disc_bt, "Discrimination", "Post-1976")
+terms2plot(latino_pre_compared_bt, asian_pre_compared_bt, "Compared", "Pre-1976") + terms2plot(latino_post_compared_bt, asian_post_compared_bt, "Compared", "Post-1976")
+
+ggsave(here("outputs", "bt_compared.png"), width = 10, height = 10)
+
+terms2plot_sep(latino_pre_compared_bt, asian_pre_compared_bt, "Compared", "Pre-1976") + terms2plot_sep(latino_post_compared_bt, asian_post_compared_bt, "Compared", "Post-1976")
+
+ggsave(here("outputs", "bt_compared_sep.png"), width = 10, height = 10)
+```
+
+```{r}
+terms2plot(latino_pre_compared_bt, asian_pre_compared_bt, "Compared", "Pre-1976") + terms2plot(latino_post_compared_bt, asian_post_compared_bt, "Compared", "Post-1976")
+
+ggsave(here("outputs", "bt_compared.png"), width = 10, height = 10)
+
+terms2plot_sep(latino_pre_compared_bt, asian_pre_compared_bt, "Compared", "Pre-1976") + terms2plot_sep(latino_post_compared_bt, asian_post_compared_bt, "Compared", "Post-1976")
+
+ggsave(here("outputs", "bt_compared_sep.png"), width = 10, height = 10)
 ```
 
 ### Contrasting 
@@ -310,12 +346,12 @@ ggsave(here("outputs", "disc_contrast.png"),
 ```
 
 ```{r}
-nns_minority <- (con2nplot(subset(corpus, year < 1976), "mionrity", local_glove, local_transform) + labs(title = "Pre-1976", subtitle = "Keyword: Minority")) +
+nns_compared <- (con2nplot(subset(corpus, year < 1976), "compared", local_glove, local_transform) + labs(title = "Pre-1976", subtitle = "Keyword: Compared")) +
 
-(con2nplot(subset(corpus, year >= 1976), "minority", local_glove, local_transform) + labs(title = "Post-1976", subtitle = "Keyword: Minority"))
+(con2nplot(subset(corpus, year >= 1976), "compared", local_glove, local_transform) + labs(title = "Post-1976", subtitle = "Keyword: Compared"))
 
-nns_minority
-ggsave(here("outputs", "minority_contrast.png"),
+nns_compared
+ggsave(here("outputs", "compared_contrast.png"),
        width = 20, height = 15
        )
 ```
@@ -340,4 +376,21 @@ nns_federal
 ggsave(here("outputs", "disc_federal.png"),
        width = 20, height = 15
        )
+```
+
+## Example texts 
+
+```{r}
+latino_pre_black_ex <- get_examples(1, 1, c("black", "african_american", "negro"), 20)
+asian_pre_black_ex <- get_examples(0, 1, c("black", "african_american", "negro"), 20)
+
+latino_post_black_ex <- get_examples(1, 0, c("black", "african_american", "negro"), 20)
+asian_post_black_ex <- get_examples(0, 0, c("black", "african_american", "negro"), 20)
+
+latino_pre_disc_ex <- get_examples(1, 1, "discrimination", 20)
+asian_pre_disc_ex <- get_examples(0, 1, "discrimination", 20)
+
+latino_post_disc_ex <- get_examples(1, 0, "discrimination", 20)
+asian_post_disc_ex <- get_examples(0, 0, "discrimination", 20)
+```
 ```

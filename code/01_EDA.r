@@ -1,13 +1,4 @@
----
-title: "EDA"
-output:
-  html_document:
-    df_print: paged
----
-
-# Import pkgs 
-
-```{r}
+## -----------------------------------
 # Import pkgs
 pacman::p_load(
   tesseract,
@@ -37,29 +28,25 @@ pacman::p_load(
 theme_set(theme_clean())
 
 source(here("functions", "utils.r"))
-```
 
-# Import files 
 
-```{r}
+## -----------------------------------
 # File name list
 filename <- list.files(here("raw_data", "nclr"))
 
 asian_filename <- list.files(here("raw_data", "clean_magazines_txts"))
-```
 
-# Turn texts into a dataframe 
 
-```{r}
+## -----------------------------------
 # Excluding codebook
 filename <- filename[!str_detect(filename, "codebook")]
 
 gidra <- asian_filename[str_detect(asian_filename, "Gidra")]
 
 bridge <- asian_filename[str_detect(asian_filename, "Bridge")]
-```
 
-```{r}
+
+## -----------------------------------
 # Mapping 
 text_list <- map(here("raw_data", "nclr", filename), pdf2text)
 
@@ -93,9 +80,9 @@ df <- df %>%
 
 # Save the df
 saveRDS(df, file = here("processed_data/nclr.Rdata"))
-```
 
-```{r}
+
+## -----------------------------------
 gidra_text <- map_dfr(here("raw_data", "clean_magazines_txts", gidra), parse_text)
 
 bridge_text <- map_dfr(here("raw_data", "clean_magazines_txts", bridge), parse_text)
@@ -104,9 +91,9 @@ asian_text <- bind_rows(gidra_text, bridge_text)
 
 # Save the asian_text
 saveRDS(asian_text, file = here("processed_data/asian.Rdata"))
-```
 
-```{r}
+
+## -----------------------------------
 # Load the df 
 df <- readRDS(here("processed_data/nclr.Rdata")) %>%
   filter(date != "codebook")
@@ -117,21 +104,17 @@ new_date_asian <- glue("{asian_text$year}-{asian_text$month}")
 
 df$date <- zoo::as.yearmon(df$date)
 asian_text$date <- zoo::as.yearmon(new_date_asian)
-```
 
-# Preprocessing 
 
-```{r}
+## -----------------------------------
 # Call stop words dictionary 
 data("stop_words")
 
 df <- clean_text(df)
 asian_text <- clean_text(asian_text)
-```
 
-# Count words 
 
-```{r}
+## -----------------------------------
 tf_idf_nclr <- get_word_count(df, stem = FALSE)
 tf_idf_gidra <- get_word_count(asian_text %>%
                                  filter(source == "Gidra"), stem = FALSE)
@@ -142,28 +125,26 @@ tf_idf_bridge <- get_word_count(asian_text %>%
 save(df, tf_idf_nclr,
      asian_text, tf_idf_gidra, tf_idf_bridge, 
      file = here("processed_data/processed_text.Rdata"))
-```
 
-```{r}
+
+## -----------------------------------
 #load(file = here("processed_data/processed_text.Rdata"))
 
 tf_idf <- bind_rows(
   mutate(tf_idf_nclr, group = "NCLR"), 
   mutate(tf_idf_gidra, group = "Gidra"),
   mutate(tf_idf_bridge, group = "Bridge"))
-```
 
-# Plotting 
 
-```{r}
+## -----------------------------------
 theme_set(theme_clean())
 
 ggarrange(plot_track_keyword(tf_idf, "discrimination|prejudice|oppression|racism|poverty"), plot_track_keyword(tf_idf, "black|blacks"), ncol = 1, nrow = 2)
 
 ggsave(here("outputs", "desc_comp.png"),width = 13)
-```
- 
-```{r}
+
+
+## -----------------------------------
 knitr::purl(input = here("code", "01_EDA.Rmd"),
             output = here("code", "01_EDA.r"))
-```
+
