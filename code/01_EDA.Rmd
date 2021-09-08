@@ -91,32 +91,28 @@ df <- df %>%
   group_by(date) %>%
   summarise(value = paste(value, collapse = ","))
 
-# Save the df
-saveRDS(df, file = here("processed_data/nclr.Rdata"))
+df$date <- zoo::as.yearmon(df$date)
 ```
 
 ```{r}
 gidra_text <- map_dfr(here("raw_data", "clean_magazines_txts", gidra), parse_text)
-
+ 
 bridge_text <- map_dfr(here("raw_data", "clean_magazines_txts", bridge), parse_text)
+
+ie_text <- read_rds(here("raw_data", "asian_newspaper.rds")) %>%
+  filter(source == "International Examiner") %>%
+  select(source, year, date, text)
+
+ie_text$date <- zoo::as.yearmon(ie_text$date)
 
 asian_text <- bind_rows(gidra_text, bridge_text)
 
-# Save the asian_text
-saveRDS(asian_text, file = here("processed_data/asian.Rdata"))
-```
-
-```{r}
-# Load the df 
-df <- readRDS(here("processed_data/nclr.Rdata")) %>%
-  filter(date != "codebook")
-
-asian_text <- readRDS(here("processed_data/asian.Rdata"))
-
 new_date_asian <- glue("{asian_text$year}-{asian_text$month}")
 
-df$date <- zoo::as.yearmon(df$date)
 asian_text$date <- zoo::as.yearmon(new_date_asian)
+asian_text$month <- NULL
+
+asian_text <- bind_rows(asian_text, ie_text)
 ```
 
 # Preprocessing 
@@ -125,6 +121,8 @@ asian_text$date <- zoo::as.yearmon(new_date_asian)
 # Call stop words dictionary 
 data("stop_words")
 
+df$original_value <- df$value 
+asian_text$original_value <- asian_text$value
 df <- clean_text(df)
 asian_text <- clean_text(asian_text)
 ```
@@ -133,14 +131,11 @@ asian_text <- clean_text(asian_text)
 
 ```{r}
 tf_idf_nclr <- get_word_count(df, stem = FALSE)
-tf_idf_gidra <- get_word_count(asian_text %>%
-                                 filter(source == "Gidra"), stem = FALSE)
-tf_idf_bridge <- get_word_count(asian_text %>%
-                                 filter(source != "Gidra"), stem = FALSE)
+tf_idf_asian <- get_word_count(asian_text, stem = FALSE)
 
 # Save the objects
 save(df, tf_idf_nclr,
-     asian_text, tf_idf_gidra, tf_idf_bridge, 
+     asian_text, tf_idf_asian, 
      file = here("processed_data/processed_text.Rdata"))
 ```
 
@@ -148,9 +143,8 @@ save(df, tf_idf_nclr,
 #load(file = here("processed_data/processed_text.Rdata"))
 
 tf_idf <- bind_rows(
-  mutate(tf_idf_nclr, group = "NCLR"), 
-  mutate(tf_idf_gidra, group = "Gidra"),
-  mutate(tf_idf_bridge, group = "Bridge"))
+  mutate(tf_idf_nclr, group = "Latino"), 
+  mutate(tf_idf_asian, group = "Asian"))
 ```
 
 # Plotting 
@@ -158,7 +152,7 @@ tf_idf <- bind_rows(
 ```{r}
 theme_set(theme_clean())
 
-ggarrange(plot_track_keyword(tf_idf, "discrimination|prejudice|oppression|racism|poverty"), plot_track_keyword(tf_idf, "black|blacks"), ncol = 1, nrow = 2)
+ggarrange(plot_track_keyword(tf_idf, "discrimination|discriminated"), plot_track_keyword(tf_idf, "black|blacks"), ncol = 1, nrow = 2)
 
 ggsave(here("outputs", "desc_comp.png"),width = 13)
 ```

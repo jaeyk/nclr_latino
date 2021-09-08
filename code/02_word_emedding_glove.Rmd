@@ -173,13 +173,13 @@ ggsave(here("outputs", "ts_embed_plot.png"))
 ```
 
 ```{r}
-corpus$pre <- if_else(corpus$year < 1976, 1, 0) 
+corpus$post <- if_else(corpus$year >= 1976, 1, 0) 
 ```
 
 ### Regression 
 
 ```{r}
-mod_black <- conText(formula = black ~ latino + pre, 
+mod_black <- conText(formula = black ~ latino + post, 
           data = corpus, 
           text_var = 'value', 
           pre_trained = local_glove,
@@ -196,7 +196,7 @@ mod_black <- conText(formula = black ~ latino + pre,
           hard_cut = FALSE, 
           verbose = FALSE)
 
-mod_disc <- conText(formula = discrimination ~ latino + pre, 
+mod_disc <- conText(formula = discrimination ~ latino + post, 
           data = corpus, 
           text_var = 'value', 
           pre_trained = local_glove,
@@ -216,11 +216,11 @@ mod_disc <- conText(formula = discrimination ~ latino + pre,
 
 ```{r}
 plot_tibble_black <- mod_black$normed_betas %>% 
-  mutate(Coefficient = c("Latino", "Pre-1976")) %>% 
+  mutate(Coefficient = c("Latino", "Post-1976")) %>% 
   mutate(Coefficient = factor(Coefficient, levels = Coefficient))
 
 plot_tibble_disc <- mod_disc$normed_betas %>% 
-  mutate(Coefficient = c("Latino", "Pre-1976")) %>% 
+  mutate(Coefficient = c("Latino", "Post-1976")) %>% 
   mutate(Coefficient = factor(Coefficient, levels = Coefficient))
 ```
 
@@ -233,7 +233,7 @@ reg_blk_plot <- plot_tibble_black %>%
     1.96 * Std.Error, ymax = Normed_Estimate + 1.96 * Std.Error), size = 0.75, width = 0.15, 
     position = position_dodge(0.9)) + 
   ylab("Norm of beta hats") + 
-  geom_text(aes(label = c("***", "***")), position = position_dodge(width = 0.9), hjust = 0.5, vjust = -1, size = 8) + 
+  geom_text(aes(label = c("***", "*")), position = position_dodge(width = 0.9), hjust = 0.5, vjust = -1, size = 8) + 
   theme(axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust = 1),
           axis.text.y = element_text(size = 10)) +
   ylim(c(0,1.4)) +
@@ -262,23 +262,23 @@ ggsave(here("outputs", "embed_reg_combined.png"))
 ### ALC embedding 
 
 ```{r}
-latino_pre_black_bt <- get_bt_terms(1, 1, "black", 200)
-asian_pre_black_bt <- get_bt_terms(0, 1, "black", 200)
+latino_pre_black_bt <- get_bt_terms(1, 0, "black", 200)
+asian_pre_black_bt <- get_bt_terms(0, 0, "black", 200)
 
-latino_post_black_bt <- get_bt_terms(1, 0, "black", 200)
-asian_post_black_bt <- get_bt_terms(0, 0, "black", 200)
+latino_post_black_bt <- get_bt_terms(1, 1, "black", 200)
+asian_post_black_bt <- get_bt_terms(0, 1, "black", 200)
 
-latino_pre_disc_bt <- get_bt_terms(1, 1, "discrimination", 200)
-asian_pre_disc_bt <- get_bt_terms(0, 1, "discrimination", 200)
+latino_pre_disc_bt <- get_bt_terms(1, 0, "discrimination", 200)
+asian_pre_disc_bt <- get_bt_terms(0, 0, "discrimination", 200)
 
-latino_post_disc_bt <- get_bt_terms(1, 0, "discrimination", 200)
-asian_post_disc_bt <- get_bt_terms(0, 0, "discrimination", 200)
+latino_post_disc_bt <- get_bt_terms(1, 1, "discrimination", 200)
+asian_post_disc_bt <- get_bt_terms(0, 1, "discrimination", 200)
 
-latino_pre_compared_bt <- get_bt_terms(1, 1, "compared", 200)
-asian_pre_compared_bt <- get_bt_terms(0, 1, "compared", 200)
+latino_pre_compared_bt <- get_bt_terms(1, 0, "compared", 200)
+asian_pre_compared_bt <- get_bt_terms(0, 0, "compared", 200)
 
-latino_post_compared_bt <- get_bt_terms(1, 0, "compared", 200)
-asian_post_compared_bt <- get_bt_terms(0, 0, "compared", 200)
+latino_post_compared_bt <- get_bt_terms(1, 1, "compared", 200)
+asian_post_compared_bt <- get_bt_terms(0, 1, "compared", 200)
 ```
 
 ```{r}
@@ -392,5 +392,7 @@ asian_pre_disc_ex <- get_examples(0, 1, "discrimination", 20)
 
 latino_post_disc_ex <- get_examples(1, 0, "discrimination", 20)
 asian_post_disc_ex <- get_examples(0, 0, "discrimination", 20)
+
+asian_pre_black_ex
 ```
 ```

@@ -1,3 +1,21 @@
+pdf2text <- function(file_path, tesseract = "no") {
+  
+  if (tesseract == "no") {
+    
+    text <- pdftools::pdf_text(file_path)
+    
+  }
+  if (tesseract == "yes") {
+    
+    image <- pdftools::pdf_convert(file_path)
+
+    text <- tesseract::ocr(image)
+  
+  }
+  
+  return(text)
+}
+
 clean_text <- function(df) {
   
   # Remove cover pages 
@@ -6,13 +24,13 @@ clean_text <- function(df) {
     filter(!is.na(date))
   
   # Remove stopwords and excessive whitespace
-  df$value <- tm::removeWords(df$value, words = stop_words$word) 
+  df$value <- tm::removeWords(df$value, words = stopwords::stopwords("english", source = "nltk"))
   
   df$value <- df$value %>%
     # Remove all non-alpha characters 
     gsub("[^[:alpha:]]", " ", .) %>%
-    # remove 1-2 letter words
-    str_replace_all("\\b\\w{1,2}\\b", "") %>% 
+    # remove 1-3 letter words
+    str_replace_all("\\b\\w{1,3}\\b", "") %>% 
     # remove excess white space
     str_replace_all("^ +| +$|( ) +", "\\1") %>% 
     tolower() # lowercase
@@ -228,9 +246,19 @@ df2vec <- function(corpus, count_min = 5, window_size = 6, dims = 50) {
   return(word_vectors)
 }
 
+get_examples <- function(group_n, period_n, keyword, word_n) {
+  
+  contexts <- get_context(x = subset(corpus, latino == group_n & post == period_n)$original_value, target = keyword, 
+                          window = 6, valuetype = "fixed", case_insensitive = TRUE, hard_cut = FALSE, verbose = FALSE)
+  
+  contexts_pr <- prototypical_context(context = contexts$context, pre_trained = local_glove, transform = TRUE, transform_matrix = local_transform, N = word_n, norm = "l2")
+  
+  contexts$context[contexts_pr$doc_id]
+}
+
 get_bt_terms <- function(group_n, period_n, keyword, word_n) {
   
-  contexts <- get_context(x = subset(corpus, latino == group_n & pre == period_n)$value, target = "discrimination", 
+  contexts <- get_context(x = subset(corpus, latino == group_n & post == period_n)$value, target = keyword, 
                           window = 6, valuetype = "fixed", case_insensitive = TRUE, hard_cut = FALSE, verbose = FALSE)
   
   local_vocab <- get_local_vocab(contexts$context, local_glove)
@@ -306,7 +334,7 @@ get_candidates <- function(corpus, keyword, local_glove, local_transform) {
 
 get_contexs <- function(group_n, period_n, key_word) {
   
-  out <- get_context(x = subset(corpus, latino == group_n & pre == period_n)$value, target = key_word, 
+  out <- get_context(x = subset(corpus, latino == group_n & post== period_n)$value, target = key_word, 
                      window = 6, valuetype = "fixed", case_insensitive = TRUE, hard_cut = FALSE, verbose = FALSE)
   
   return(out)
@@ -537,14 +565,15 @@ plot_track_keyword <- function(tf_idf, keyword) {
            tf_idf = sum_tf_idf) 
   
   base_count %>%
-    ggplot(aes(x = date, y = tf_idf, col = group)) +
+    ggplot(aes(x = date, y = tf_idf)) +
     geom_point() +
     geom_line(alpha = 0.5) +
     labs(title = glue("The count of words related to {keyword}"),
          col = "Source",
          x = "",
          y = "") +
-    theme(legend.position = "bottom")
+    theme(legend.position = "bottom") +
+    facet_wrap(~group)
   #       caption = glue("Sources: National Council of La Raza, 1972-1981 (Hispanic),
   #                       Gidra, 1969-1974, Bridge, 1970-1982 (Asian)"))
   
@@ -620,12 +649,30 @@ terms2plot <- function(df1, df2, keyword, year) {
                ymax = Estimate + 1.96*Std.Error,
                ymin = Estimate - 1.96*Std.Error, col = group)) +
     geom_pointrange() +
-    facet_wrap(~period) +
     coord_flip() +
     labs(subtitle = glue("Keyword: {keyword}"),
          title = glue("{year}"),
          x = "",
-         y = "Bootstrapped estimate") +
+         y = "Estimate") +
+    theme(legend.position = "bottom") +
+    scale_color_brewer(palette = "Dark2")
+  
+}
+
+terms2plot_sep <- function(df1, df2, keyword, year) {
+  
+  bind_rows(df1, df2) %>%
+    group_by(group) %>%
+    top_n(20, Estimate) %>%
+    ggplot(aes(x = fct_reorder(Term, Estimate), y = Estimate, 
+               ymax = Estimate + 1.96*Std.Error,
+               ymin = Estimate - 1.96*Std.Error, col = group)) +
+    geom_pointrange() +
+    coord_flip() +
+    labs(subtitle = glue("Keyword: {keyword}"),
+         title = glue("{year}"),
+        x = "",
+       y = "Estimate") +
     theme(legend.position = "bottom") +
     scale_color_brewer(palette = "Dark2")
   
