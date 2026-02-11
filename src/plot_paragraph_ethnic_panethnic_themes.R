@@ -11,9 +11,9 @@ suppressPackageStartupMessages({
 parse_args <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   out <- list(
-    contrast = "outputs/analysis/paragraph_theme_contrast_panethnic_minus_ethnic.csv",
-    monthly = "outputs/analysis/paragraph_theme_monthly_by_group.csv",
-    out_trend = "outputs/analysis/fig_paragraph_theme_trends_facet.png",
+    contrast = "outputs/paragraph_theme_contrast_panethnic_minus_ethnic.csv",
+    monthly = "outputs/paragraph_theme_monthly_by_group.csv",
+    out_trend = "outputs/fig_paragraph_theme_trends_facet.png",
     x_break_every = 4L,
     top_n = 8L,
     normalize = "max100"

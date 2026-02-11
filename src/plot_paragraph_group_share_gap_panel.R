@@ -11,8 +11,8 @@ suppressPackageStartupMessages({
 parse_args <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   out <- list(
-    monthly = "outputs/analysis/paragraph_theme_monthly_by_group.csv",
-    out_plot = "outputs/analysis/fig_span_group_share_over_time_gap_panel.png",
+    monthly = "outputs/paragraph_theme_monthly_by_group.csv",
+    out_plot = "outputs/fig_span_group_share_over_time_gap_panel.png",
     x_break_every = 4L
   )
   if (length(args) == 0) return(out)

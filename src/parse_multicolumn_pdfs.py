@@ -8,9 +8,9 @@ page, and reconstructs reading order as:
 - ...
 
 Outputs:
-- outputs/parsed/page_text.csv
-- outputs/parsed/issue_text.csv
-- outputs/parsed/line_text.csv
+- outputs/page_text.csv
+- outputs/issue_text.csv
+- outputs/line_text.csv
 """
 
 from __future__ import annotations
@@ -263,9 +263,9 @@ def write_csv(path: pathlib.Path, rows: list[dict]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Parse multi-column PDFs into ordered text")
     parser.add_argument("--raw-dir", default="raw_data", help="Directory containing issue PDFs")
-    parser.add_argument("--line-out", default="outputs/parsed/line_text.csv", help="Output line-level CSV")
-    parser.add_argument("--page-out", default="outputs/parsed/page_text.csv", help="Output page-level CSV")
-    parser.add_argument("--issue-out", default="outputs/parsed/issue_text.csv", help="Output issue-level CSV")
+    parser.add_argument("--line-out", default="outputs/line_text.csv", help="Output line-level CSV")
+    parser.add_argument("--page-out", default="outputs/page_text.csv", help="Output page-level CSV")
+    parser.add_argument("--issue-out", default="outputs/issue_text.csv", help="Output issue-level CSV")
     parser.add_argument("--limit", type=int, default=0, help="Optional cap for testing")
     args = parser.parse_args()
 

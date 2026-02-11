@@ -9,8 +9,8 @@ Pipeline:
 5) Compare filename date vs front-page date and flag conflicts
 
 Outputs:
-- outputs/metadata/issue_metadata.csv
-- outputs/metadata/date_conflicts.csv
+- outputs/issue_metadata.csv
+- outputs/date_conflicts.csv
 """
 
 from __future__ import annotations
@@ -285,10 +285,10 @@ def write_csv(path: pathlib.Path, rows: list[dict]) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Extract issue metadata from NCLR PDFs")
     parser.add_argument("--raw-dir", default="raw_data", help="Directory containing issue PDFs")
-    parser.add_argument("--out", default="outputs/metadata/issue_metadata.csv", help="Output CSV path")
+    parser.add_argument("--out", default="outputs/issue_metadata.csv", help="Output CSV path")
     parser.add_argument(
         "--conflicts-out",
-        default="outputs/metadata/date_conflicts.csv",
+        default="outputs/date_conflicts.csv",
         help="Output CSV path for date conflicts",
     )
     parser.add_argument(

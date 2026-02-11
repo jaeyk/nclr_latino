@@ -2,11 +2,11 @@
 """Quality-control filter for paragraph_panel.csv.
 
 Input:
-- outputs/analysis/paragraph_panel.csv
+- outputs/paragraph_panel.csv
 
 Outputs:
-- outputs/analysis/paragraph_panel_qc.csv
-- outputs/analysis/paragraph_panel_filtered.csv
+- outputs/paragraph_panel_qc.csv
+- outputs/paragraph_panel_filtered.csv
 """
 
 from __future__ import annotations
@@ -100,9 +100,9 @@ def keep_row(row: dict, m: dict[str, float]) -> tuple[bool, str]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Filter paragraph panel by OCR/text quality")
-    parser.add_argument("--panel", default="outputs/analysis/paragraph_panel.csv")
-    parser.add_argument("--qc-out", default="outputs/analysis/paragraph_panel_qc.csv")
-    parser.add_argument("--filtered-out", default="outputs/analysis/paragraph_panel_filtered.csv")
+    parser.add_argument("--panel", default="outputs/paragraph_panel.csv")
+    parser.add_argument("--qc-out", default="outputs/paragraph_panel_qc.csv")
+    parser.add_argument("--filtered-out", default="outputs/paragraph_panel_filtered.csv")
     args = parser.parse_args()
 
     csv.field_size_limit(10**9)

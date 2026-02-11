@@ -2,14 +2,14 @@
 """Build reader-facing corpus summary tables.
 
 Inputs:
-- outputs/analysis/paragraph_panel.csv
-- outputs/analysis/paragraph_panel_filtered.csv
-- outputs/metadata/issue_metadata.csv
+- outputs/paragraph_panel.csv
+- outputs/paragraph_panel_filtered.csv
+- outputs/issue_metadata.csv
 
 Outputs:
-- outputs/analysis/corpus_summary_table.csv
-- outputs/analysis/corpus_summary_table.md
-- outputs/analysis/corpus_issue_level_summary.csv
+- outputs/corpus_summary_table.csv
+- outputs/corpus_summary_table.md
+- outputs/corpus_issue_level_summary.csv
 """
 
 from __future__ import annotations
@@ -53,12 +53,12 @@ def q(v: float) -> str:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Summarize corpus at issue and corpus levels")
-    p.add_argument("--raw", default="outputs/analysis/paragraph_panel.csv")
-    p.add_argument("--filtered", default="outputs/analysis/paragraph_panel_filtered.csv")
-    p.add_argument("--metadata", default="outputs/metadata/issue_metadata.csv")
-    p.add_argument("--out-summary-csv", default="outputs/analysis/corpus_summary_table.csv")
-    p.add_argument("--out-summary-md", default="outputs/analysis/corpus_summary_table.md")
-    p.add_argument("--out-issue-csv", default="outputs/analysis/corpus_issue_level_summary.csv")
+    p.add_argument("--raw", default="outputs/paragraph_panel.csv")
+    p.add_argument("--filtered", default="outputs/paragraph_panel_filtered.csv")
+    p.add_argument("--metadata", default="outputs/issue_metadata.csv")
+    p.add_argument("--out-summary-csv", default="outputs/corpus_summary_table.csv")
+    p.add_argument("--out-summary-md", default="outputs/corpus_summary_table.md")
+    p.add_argument("--out-issue-csv", default="outputs/corpus_issue_level_summary.csv")
     args = p.parse_args()
 
     raw_rows = read_csv(pathlib.Path(args.raw))

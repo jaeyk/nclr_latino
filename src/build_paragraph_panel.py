@@ -2,11 +2,11 @@
 """Build paragraph-level analysis panel with policy and identity labels.
 
 Input:
-- outputs/parsed/line_text.csv (from parse_multicolumn_pdfs.py)
-- outputs/metadata/issue_metadata.csv (from extract_issue_metadata.py)
+- outputs/line_text.csv (from parse_multicolumn_pdfs.py)
+- outputs/issue_metadata.csv (from extract_issue_metadata.py)
 
 Output:
-- outputs/analysis/paragraph_panel.csv
+- outputs/paragraph_panel.csv
 """
 
 from __future__ import annotations
@@ -218,9 +218,9 @@ def build_paragraphs(line_rows: list[dict]) -> list[dict]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Build paragraph-level panel with policy + identity labels")
-    parser.add_argument("--line-csv", default="outputs/parsed/line_text.csv")
-    parser.add_argument("--metadata-csv", default="outputs/metadata/issue_metadata.csv")
-    parser.add_argument("--out", default="outputs/analysis/paragraph_panel.csv")
+    parser.add_argument("--line-csv", default="outputs/line_text.csv")
+    parser.add_argument("--metadata-csv", default="outputs/issue_metadata.csv")
+    parser.add_argument("--out", default="outputs/paragraph_panel.csv")
     args = parser.parse_args()
 
     csv.field_size_limit(10**9)

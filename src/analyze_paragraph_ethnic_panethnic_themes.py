@@ -2,12 +2,12 @@
 """Compare theme prevalence in panethnic-appeared vs ethnic-appeared paragraphs.
 
 Input:
-- outputs/analysis/paragraph_panel_filtered.csv
+- outputs/paragraph_panel_filtered.csv
 
 Outputs:
-- outputs/analysis/paragraph_theme_prevalence_by_group.csv
-- outputs/analysis/paragraph_theme_contrast_panethnic_minus_ethnic.csv
-- outputs/analysis/paragraph_theme_monthly_by_group.csv
+- outputs/paragraph_theme_prevalence_by_group.csv
+- outputs/paragraph_theme_contrast_panethnic_minus_ethnic.csv
+- outputs/paragraph_theme_monthly_by_group.csv
 """
 
 from __future__ import annotations
@@ -77,10 +77,10 @@ def odds_ratio(x1: int, n1: int, x2: int, n2: int) -> tuple[float, float]:
 
 def main() -> None:
     p = argparse.ArgumentParser(description="Paragraph-level panethnic vs ethnic theme comparison")
-    p.add_argument("--panel", default="outputs/analysis/paragraph_panel_filtered.csv")
-    p.add_argument("--out-prevalence", default="outputs/analysis/paragraph_theme_prevalence_by_group.csv")
-    p.add_argument("--out-contrast", default="outputs/analysis/paragraph_theme_contrast_panethnic_minus_ethnic.csv")
-    p.add_argument("--out-monthly", default="outputs/analysis/paragraph_theme_monthly_by_group.csv")
+    p.add_argument("--panel", default="outputs/paragraph_panel_filtered.csv")
+    p.add_argument("--out-prevalence", default="outputs/paragraph_theme_prevalence_by_group.csv")
+    p.add_argument("--out-contrast", default="outputs/paragraph_theme_contrast_panethnic_minus_ethnic.csv")
+    p.add_argument("--out-monthly", default="outputs/paragraph_theme_monthly_by_group.csv")
     args = p.parse_args()
 
     csv.field_size_limit(10**9)
