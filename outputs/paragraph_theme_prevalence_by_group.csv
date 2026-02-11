@@ -1,0 +1,27 @@
+group,theme,theme_pretty,n_paragraphs_group,n_theme,pct_theme
+panethnic_appeared,domain_business_development,Business Development,1509,125,8.2836
+panethnic_appeared,domain_civil_rights_voting,Civil Rights Voting,1509,260,17.23
+panethnic_appeared,domain_criminal_justice,Criminal Justice,1509,168,11.1332
+panethnic_appeared,domain_education,Education,1509,526,34.8575
+panethnic_appeared,domain_employment_labor,Employment Labor,1509,522,34.5924
+panethnic_appeared,domain_health,Health,1509,201,13.3201
+panethnic_appeared,domain_housing,Housing,1509,196,12.9887
+panethnic_appeared,domain_immigration,Immigration,1509,186,12.326
+panethnic_appeared,domain_social_policy,Social Policy,1509,236,15.6395
+panethnic_appeared,policy_frame_funding,Funding,1509,399,26.4414
+panethnic_appeared,theme_anti_discrimination,Anti Discrimination,1509,103,6.8257
+panethnic_appeared,theme_equal_opportunity,Equal Opportunity,1509,37,2.452
+panethnic_appeared,theme_invisibility,Invisibility,1509,65,4.3075
+ethnic_appeared,domain_business_development,Business Development,1481,94,6.3471
+ethnic_appeared,domain_civil_rights_voting,Civil Rights Voting,1481,235,15.8677
+ethnic_appeared,domain_criminal_justice,Criminal Justice,1481,197,13.3018
+ethnic_appeared,domain_education,Education,1481,599,40.4456
+ethnic_appeared,domain_employment_labor,Employment Labor,1481,459,30.9926
+ethnic_appeared,domain_health,Health,1481,188,12.6941
+ethnic_appeared,domain_housing,Housing,1481,197,13.3018
+ethnic_appeared,domain_immigration,Immigration,1481,204,13.7745
+ethnic_appeared,domain_social_policy,Social Policy,1481,236,15.9352
+ethnic_appeared,policy_frame_funding,Funding,1481,346,23.3626
+ethnic_appeared,theme_anti_discrimination,Anti Discrimination,1481,104,7.0223
+ethnic_appeared,theme_equal_opportunity,Equal Opportunity,1481,20,1.3504
+ethnic_appeared,theme_invisibility,Invisibility,1481,54,3.6462

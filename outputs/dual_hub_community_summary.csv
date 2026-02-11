@@ -1,0 +1,7 @@
+community_id,n_terms,total_pooled_n,mean_gap_pan_minus_eth,community_tilt,community_label,top_terms
+1,16,777,0.005723,shared,"labor department, farm workers, mental health, health care",labor department|farm workers|mental health|health care|employment opportunity|equal employment|affirmative action|minority women
+2,17,699,0.003951,shared,"health education welfare, economic development, federal agency, community development",health education welfare|economic development|federal agency|community development|small business|urban housing|urban development|community services
+3,11,656,-0.001043,shared,"civil rights, legal defense, justice department, voting rights",civil rights|legal defense|justice department|voting rights|defense educational|civil commission|minority language|fund education
+4,11,498,-0.007338,shared,"high school, school district, supreme court, district court",high school|school district|supreme court|district court|higher education|school board|graduate school|school districts
+5,9,456,0.005686,shared,"bilingual education, social economic, bilingual bicultural, economic political",bilingual education|social economic|bilingual bicultural|economic political|minority largest|bicultural education|social political|school systems
+6,2,49,0.0137,panethnic_tilt,"criminal justice, justice system",criminal justice|justice system

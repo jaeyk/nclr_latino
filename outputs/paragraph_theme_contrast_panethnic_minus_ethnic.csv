@@ -1,0 +1,14 @@
+theme,theme_pretty,n_panethnic_paragraphs,n_ethnic_paragraphs,n_theme_panethnic,n_theme_ethnic,pct_panethnic,pct_ethnic,gap_pct_pan_minus_eth,odds_ratio_pan_vs_eth,log_odds_ratio_pan_vs_eth,p_value_two_prop_z
+domain_education,Education,1509,1481,526,599,34.8575,40.4456,-5.5881,0.788042,-0.238203,0.00161264
+domain_employment_labor,Employment Labor,1509,1481,522,459,34.5924,30.9926,3.5999,1.177408,0.163315,0.03606972
+policy_frame_funding,Funding,1509,1481,399,346,26.4414,23.3626,3.0788,1.178914,0.164594,0.05165243
+domain_criminal_justice,Criminal Justice,1509,1481,168,197,11.1332,13.3018,-2.1686,0.816914,-0.202222,0.07013302
+domain_business_development,Business Development,1509,1481,125,94,8.2836,6.3471,1.9366,1.33092,0.28587,0.04214104
+domain_immigration,Immigration,1509,1481,186,204,12.326,13.7745,-1.4484,0.880283,-0.127511,0.23967079
+domain_civil_rights_voting,Civil Rights Voting,1509,1481,260,235,17.23,15.8677,1.3623,1.103501,0.098488,0.31631704
+theme_equal_opportunity,Equal Opportunity,1509,1481,37,20,2.452,1.3504,1.1015,1.815603,0.596418,0.02765177
+theme_invisibility,Invisibility,1509,1481,65,54,4.3075,3.6462,0.6613,1.187691,0.172011,0.35504713
+domain_health,Health,1509,1481,201,188,13.3201,12.6941,0.626,1.056711,0.055162,0.61096794
+domain_housing,Housing,1509,1481,196,197,12.9887,13.3018,-0.3131,0.97297,-0.027402,0.80001031
+domain_social_policy,Social Policy,1509,1481,236,236,15.6395,15.9352,-0.2957,0.978013,-0.022232,0.82453991
+theme_anti_discrimination,Anti Discrimination,1509,1481,103,104,6.8257,7.0223,-0.1966,0.970009,-0.03045,0.83233652
