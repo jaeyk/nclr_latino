@@ -64,7 +64,7 @@ p_top <- ggplot(gap, aes(x = year_month, y = gap_pan_minus_eth, group = 1)) +
   scale_y_continuous(labels = function(x) round(x, 0)) +
   labs(
     title = "Panethnic Minus Ethnic Share Gap (Paragraph Unit)",
-    subtitle = paste0("Both panels use paragraph-unit shares. Source: Agenda, NCLR newsletter (", period_txt, ")"),
+    subtitle = "Both panels use paragraph-unit shares.",
     x = NULL,
     y = "Gap (percentage points)"
   ) +
@@ -95,7 +95,7 @@ p_bottom <- ggplot(
   scale_y_continuous(labels = function(x) paste0(round(x, 0), "%")) +
   labs(
     title = "Raw Group Shares (Paragraph Unit)",
-    subtitle = paste0("Source: Agenda, NCLR newsletter (", period_txt, ")"),
+    subtitle = NULL,
     x = "Issue Month",
     y = "Percent share",
     color = NULL,
@@ -120,8 +120,24 @@ p_bottom <- ggplot(
     shape = "none"
   )
 
+caption_grob <- grid::textGrob(
+  paste0("Source: Agenda, NCLR newsletter (", period_txt, ")"),
+  x = 0.99,
+  hjust = 1,
+  gp = grid::gpar(col = "gray30", cex = 0.85)
+)
+
+combined_plot <- gridExtra::arrangeGrob(
+  p_top,
+  p_bottom,
+  ncol = 1,
+  heights = c(0.9, 1.1),
+  bottom = caption_grob
+)
+
 png(cfg$out_plot, width = 12, height = 8.5, units = "in", res = 320)
-gridExtra::grid.arrange(p_top, p_bottom, ncol = 1, heights = c(0.9, 1.1))
+grid::grid.newpage()
+grid::grid.draw(combined_plot)
 dev.off()
 
 message("Wrote: ", cfg$out_plot)

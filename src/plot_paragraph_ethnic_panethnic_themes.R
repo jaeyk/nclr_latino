@@ -90,8 +90,8 @@ if (length(key_themes) > 0) {
     select(year_month, theme_pretty, group_pretty, rate) %>%
     pivot_wider(names_from = group_pretty, values_from = rate, values_fill = 0) %>%
     mutate(
-      y_min = pmin(`Panethnic Appeared`, `Ethnic Appeared`, na.rm = TRUE),
-      y_max = pmax(`Panethnic Appeared`, `Ethnic Appeared`, na.rm = TRUE)
+      y_min = if_else(`Panethnic Appeared` > `Ethnic Appeared`, `Ethnic Appeared`, NA_real_),
+      y_max = if_else(`Panethnic Appeared` > `Ethnic Appeared`, `Panethnic Appeared`, NA_real_)
     )
 
   if (cfg$normalize == "max100") {
@@ -107,8 +107,8 @@ if (length(key_themes) > 0) {
       select(year_month, theme_pretty, group_pretty, rate_plot) %>%
       pivot_wider(names_from = group_pretty, values_from = rate_plot, values_fill = 0) %>%
       mutate(
-        y_min = pmin(`Panethnic Appeared`, `Ethnic Appeared`, na.rm = TRUE),
-        y_max = pmax(`Panethnic Appeared`, `Ethnic Appeared`, na.rm = TRUE)
+        y_min = if_else(`Panethnic Appeared` > `Ethnic Appeared`, `Ethnic Appeared`, NA_real_),
+        y_max = if_else(`Panethnic Appeared` > `Ethnic Appeared`, `Panethnic Appeared`, NA_real_)
       )
   } else {
     tr_long <- tr_long %>% mutate(rate_plot = rate)
@@ -119,6 +119,24 @@ if (length(key_themes) > 0) {
   break_idx <- seq(1, length(month_levels), by = max(1L, cfg$x_break_every))
   month_breaks <- month_levels[break_idx]
   period_txt <- paste0(min(month_levels), " to ", max(month_levels))
+  first_month <- month_levels[1]
+  last_month <- month_levels[length(month_levels)]
+
+  delta_labels <- tr_long %>%
+    filter(year_month %in% c(first_month, last_month)) %>%
+    select(theme_pretty, year_month, group_pretty, rate_plot) %>%
+    tidyr::pivot_wider(names_from = group_pretty, values_from = rate_plot, values_fill = 0) %>%
+    mutate(gap_pan_minus_eth = `Panethnic Appeared` - `Ethnic Appeared`) %>%
+    group_by(theme_pretty) %>%
+    summarise(
+      gap_change = dplyr::last(gap_pan_minus_eth) - dplyr::first(gap_pan_minus_eth),
+      .groups = "drop"
+    ) %>%
+    mutate(
+      label = paste0("Gap change (Pan-Eth): ", sprintf("%+.1f", gap_change)),
+      year_month = last_month,
+      y = Inf
+    )
 
   p_trend <- ggplot() +
     geom_ribbon(
@@ -137,26 +155,39 @@ if (length(key_themes) > 0) {
       aes(x = year_month, y = rate_plot, color = group_pretty, group = group_pretty),
       size = 1.1
     ) +
+    geom_text(
+      data = delta_labels,
+      aes(x = year_month, y = y, label = label),
+      inherit.aes = FALSE,
+      hjust = 1.02,
+      vjust = 1.25,
+      size = 2.7,
+      color = "gray20"
+    ) +
     geom_hline(yintercept = 0, linewidth = 0.25, color = "gray60") +
     facet_wrap(~ theme_pretty, ncol = 2, scales = "free_y") +
     scale_x_discrete(breaks = month_breaks) +
     scale_color_manual(values = c("Panethnic Appeared" = "black", "Ethnic Appeared" = "gray35")) +
     labs(
       title = "Theme Trends in Panethnic- vs Ethnic-Appeared Paragraphs",
-      subtitle = paste0(
-        ifelse(cfg$normalize == "max100", "Gray band = gap; lines normalized to each group's max = 100", "Gray band = magnitude of gap between group lines"),
-        ". Source: Agenda, NCLR newsletter (", period_txt, ")"
+      subtitle = ifelse(
+        cfg$normalize == "max100",
+        "Gray band = gap; lines normalized to each group's max = 100",
+        "Gray band = magnitude of gap between group lines"
       ),
       x = "Issue Month",
       y = ifelse(cfg$normalize == "max100", "Normalized index (group max = 100)", "Mentions per 100 group paragraphs"),
-      color = NULL
+      color = NULL,
+      caption = paste0("Source: Agenda, NCLR newsletter (", period_txt, ")")
     ) +
     theme_minimal(base_size = 10.5) +
     theme(
       axis.text.x = element_text(angle = 60, hjust = 1, size = 7),
       strip.text = element_text(face = "bold"),
       legend.position = "top",
-      panel.grid.minor = element_blank()
+      panel.grid.minor = element_blank(),
+      plot.caption = element_text(hjust = 1, color = "gray30", size = 8),
+      plot.caption.position = "plot"
     )
 
   ggsave(cfg$out_trend, p_trend, width = 12, height = 9, dpi = 320)
