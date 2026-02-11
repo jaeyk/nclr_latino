@@ -200,7 +200,7 @@ def main() -> None:
     node_colors = [color_map.get(g_terms.nodes[n]["tilt"], "#bdbdbd") for n in names]
 
     fig, ax = plt.subplots(figsize=(20, 12), dpi=170)
-    bg = "#f1f1f1"
+    bg = "#ffffff"
     fig.patch.set_facecolor(bg)
     ax.set_facecolor(bg)
 
