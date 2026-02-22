@@ -95,6 +95,34 @@ Notes:
 - Gray band indicates the gap between lines.
 - `--normalize=max100` normalizes each group line within each facet for shape comparison.
 
+## 9) Figure C: Dual-Hub Policy Context Network
+
+Build network tables:
+
+```bash
+python3 src/analyze_dual_hub_policy_context.py
+```
+
+Plot figure:
+
+```bash
+python3 src/plot_dual_hub_policy_context.py
+```
+
+Outputs:
+- `outputs/dual_hub_nodes.csv`
+- `outputs/dual_hub_edges.csv`
+- `outputs/dual_hub_community_membership.csv`
+- `outputs/dual_hub_community_summary.csv`
+- `outputs/fig_dual_hub_policy_context.png`
+
+Method notes:
+- Paragraph unit is the base for term extraction and co-occurrence.
+- Candidate policy-context terms are retained, then a weighted term-term graph is built from pooled co-occurrence counts (`weight_n`).
+- Community detection uses Louvain in NetworkX at `src/analyze_dual_hub_policy_context.py:525`.
+- Community outputs are written to membership/summary CSVs.
+- The plotted figure is arranged and colored by panethnic/ethnic tilt, not by Louvain community id.
+
 ## Regex Definitions For Identity Labels
 
 Defined in `src/build_paragraph_panel.py`:

@@ -83,11 +83,15 @@ p_top <- ggplot(gap, aes(x = year_month, y = gap_pan_minus_eth, group = 1)) +
     x = NULL,
     y = "Gap (percentage points)"
   ) +
-  theme_minimal(base_size = 11) +
+  theme_minimal(base_size = 14) +
   theme(
     axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
-    panel.grid.minor = element_blank()
+    panel.grid.minor = element_blank(),
+    plot.title = element_text(size = 18, face = "bold"),
+    plot.subtitle = element_text(size = 13),
+    axis.title.y = element_text(size = 14),
+    axis.text.y = element_text(size = 12)
   )
 
 p_bottom <- ggplot(
@@ -117,10 +121,14 @@ p_bottom <- ggplot(
     linetype = NULL,
     shape = NULL
   ) +
-  theme_minimal(base_size = 11) +
+  theme_minimal(base_size = 14) +
   theme(
-    axis.text.x = element_text(angle = 60, hjust = 1, size = 8),
+    axis.text.x = element_text(angle = 60, hjust = 1, size = 11),
+    axis.text.y = element_text(size = 12),
+    axis.title = element_text(size = 14),
+    plot.title = element_text(size = 18, face = "bold"),
     legend.position = "top",
+    legend.text = element_text(size = 12),
     panel.grid.minor = element_blank()
   ) +
   guides(
@@ -139,7 +147,7 @@ caption_grob <- grid::textGrob(
   paste0("Source: Agenda, NCLR newsletter (", period_txt, ")"),
   x = 0.99,
   hjust = 1,
-  gp = grid::gpar(col = "gray30", cex = 0.85)
+  gp = grid::gpar(col = "gray30", cex = 1.0)
 )
 
 combined_plot <- gridExtra::arrangeGrob(
