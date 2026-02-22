@@ -11,7 +11,7 @@ suppressPackageStartupMessages({
 parse_args <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   out <- list(
-    monthly = "outputs/paragraph_theme_monthly_by_group.csv",
+    panel = "outputs/paragraph_panel_filtered.csv",
     out_plot = "outputs/fig_span_group_share_over_time_gap_panel.png",
     x_break_every = 4L
   )
@@ -22,32 +22,47 @@ parse_args <- function() {
     key <- kv[, 1]
     val <- kv[, 2]
     if (!(key %in% names(out)) || !nzchar(val)) next
-    if (key %in% c("monthly", "out_plot")) out[[key]] <- val else out[[key]] <- as.integer(val)
+    if (key %in% c("panel", "out_plot")) out[[key]] <- val else out[[key]] <- as.integer(val)
   }
   out
 }
 
 cfg <- parse_args()
-if (!file.exists(cfg$monthly)) stop(paste("Missing", cfg$monthly), call. = FALSE)
+if (!file.exists(cfg$panel)) stop(paste("Missing", cfg$panel), call. = FALSE)
 
-monthly <- readr::read_csv(cfg$monthly, show_col_types = FALSE) %>%
-  filter(group %in% c("panethnic_appeared", "ethnic_appeared")) %>%
-  mutate(year_month = as.character(year_month))
+panel <- readr::read_csv(cfg$panel, show_col_types = FALSE) %>%
+  mutate(
+    canonical_year = suppressWarnings(as.integer(canonical_year)),
+    canonical_month = suppressWarnings(as.integer(canonical_month)),
+    has_panethnic_label = suppressWarnings(as.integer(has_panethnic_label)),
+    has_ethnic_label = suppressWarnings(as.integer(has_ethnic_label))
+  ) %>%
+  filter(!is.na(canonical_year), !is.na(canonical_month), canonical_month >= 1, canonical_month <= 12) %>%
+  mutate(year_month = sprintf("%04d-%02d", canonical_year, canonical_month))
 
-share <- monthly %>%
-  select(year_month, group, n_paragraphs) %>%
-  group_by(year_month, group) %>%
-  summarise(n = sum(n_paragraphs, na.rm = TRUE), .groups = "drop") %>%
+monthly_rates <- panel %>%
   group_by(year_month) %>%
-  mutate(total = sum(n), pct = if_else(total > 0, 100 * n / total, 0)) %>%
-  ungroup() %>%
-  mutate(group_pretty = recode(group, panethnic_appeared = "Panethnic", ethnic_appeared = "Ethnic"))
+  summarise(
+    n_total = n(),
+    n_panethnic = sum(has_panethnic_label == 1, na.rm = TRUE),
+    n_ethnic = sum(has_ethnic_label == 1, na.rm = TRUE),
+    pct_panethnic = if_else(n_total > 0, 100 * n_panethnic / n_total, 0),
+    pct_ethnic = if_else(n_total > 0, 100 * n_ethnic / n_total, 0),
+    .groups = "drop"
+  )
+
+share <- monthly_rates %>%
+  select(year_month, pct_panethnic, pct_ethnic) %>%
+  tidyr::pivot_longer(
+    cols = c(pct_panethnic, pct_ethnic),
+    names_to = "group",
+    values_to = "pct"
+  ) %>%
+  mutate(group_pretty = recode(group, pct_panethnic = "Panethnic", pct_ethnic = "Ethnic"))
 share$group_pretty <- factor(share$group_pretty, levels = c("Panethnic", "Ethnic"))
 
-gap <- share %>%
-  select(year_month, group_pretty, pct) %>%
-  tidyr::pivot_wider(names_from = group_pretty, values_from = pct, values_fill = 0) %>%
-  mutate(gap_pan_minus_eth = Panethnic - Ethnic)
+gap <- monthly_rates %>%
+  transmute(year_month, gap_pan_minus_eth = pct_panethnic - pct_ethnic)
 
 month_levels <- sort(unique(share$year_month))
 share$year_month <- factor(share$year_month, levels = month_levels)
@@ -63,8 +78,8 @@ p_top <- ggplot(gap, aes(x = year_month, y = gap_pan_minus_eth, group = 1)) +
   scale_x_discrete(breaks = month_breaks) +
   scale_y_continuous(labels = function(x) round(x, 0)) +
   labs(
-    title = "Panethnic Minus Ethnic Share Gap (Paragraph Unit)",
-    subtitle = "Both panels use paragraph-unit shares.",
+    title = "Panethnic Minus Ethnic Mention-Rate Gap",
+    subtitle = "Denominator: all paragraphs in each month.",
     x = NULL,
     y = "Gap (percentage points)"
   ) +
@@ -94,10 +109,10 @@ p_bottom <- ggplot(
   scale_x_discrete(breaks = month_breaks) +
   scale_y_continuous(labels = function(x) paste0(round(x, 0), "%")) +
   labs(
-    title = "Raw Group Shares (Paragraph Unit)",
+    title = "Monthly Mention Rates",
     subtitle = NULL,
     x = "Issue Month",
-    y = "Percent share",
+    y = "Percent of all paragraphs",
     color = NULL,
     linetype = NULL,
     shape = NULL
